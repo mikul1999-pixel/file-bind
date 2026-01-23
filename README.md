@@ -29,4 +29,5 @@ After config --> binds saved in .vscode/settings.json:
 ## Other commands
 From the command palette (ctrl+shift+p): <br>
 - "File Bind: Configure Keybindings" --> Customizing Keybindings to replace ```Alt+1/2/3```
-- "File Bind: Show Bound Files" --> Shows info panel with bound slots & files
+- "File Bind: Show Bound Files" --> Shows dropdown panel with bound slots & files
+- "File Bind: Clear Slot 1/2/3" --> Deletes the bind setting for a given slot

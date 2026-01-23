@@ -48,6 +48,18 @@
         "title": "File Bind: Jump to Slot 3"
       },
       {
+        "command": "file-bind.clearSlot1",
+        "title": "File Bind: Clear Slot 1"
+      },
+      {
+        "command": "file-bind.clearSlot2",
+        "title": "File Bind: Clear Slot 2"
+      },
+      {
+        "command": "file-bind.clearSlot3",
+        "title": "File Bind: Clear Slot 3"
+      },
+      {
         "command": "file-bind.showStatus",
         "title": "File Bind: Show Bound Files"
       }

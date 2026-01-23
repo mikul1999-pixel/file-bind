@@ -1,0 +1,118 @@
+{
+  "name": "file-bind",
+  "displayName": "File Bind",
+  "description": "Bind files to keyboard shortcuts for quick navigation",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikul1999-pixel/file-bind.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "file-bind.configureKeybindings",
+        "title": "File Bind: Configure Keybindings"
+      },
+      {
+        "command": "file-bind.pinToSlot1",
+        "title": "File Bind: Pin Current File to Slot 1"
+      },
+      {
+        "command": "file-bind.pinToSlot2",
+        "title": "File Bind: Pin Current File to Slot 2"
+      },
+      {
+        "command": "file-bind.pinToSlot3",
+        "title": "File Bind: Pin Current File to Slot 3"
+      },
+      {
+        "command": "file-bind.jumpToSlot1",
+        "title": "File Bind: Jump to Slot 1"
+      },
+      {
+        "command": "file-bind.jumpToSlot2",
+        "title": "File Bind: Jump to Slot 2"
+      },
+      {
+        "command": "file-bind.jumpToSlot3",
+        "title": "File Bind: Jump to Slot 3"
+      },
+      {
+        "command": "file-bind.showStatus",
+        "title": "File Bind: Show Bound Files"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "file-bind.jumpToSlot1",
+        "key": "alt+1"
+      },
+      {
+        "command": "file-bind.jumpToSlot2",
+        "key": "alt+2"
+      },
+      {
+        "command": "file-bind.jumpToSlot3",
+        "key": "alt+3"
+      },
+      {
+        "command": "file-bind.pinToSlot1",
+        "key": "alt+shift+1"
+      },
+      {
+        "command": "file-bind.pinToSlot2",
+        "key": "alt+shift+2"
+      },
+      {
+        "command": "file-bind.pinToSlot3",
+        "key": "alt+shift+3"
+      }
+    ],
+    "configuration": {
+      "title": "File Bind",
+      "properties": {
+        "file-bind.slots": {
+          "type": "object",
+          "default": {},
+          "description": "File bindings for quick navigation slots"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.52.0",
+    "eslint": "^9.39.2",
+    "esbuild": "^0.27.2",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

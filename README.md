@@ -1,6 +1,6 @@
 # file-bind
 
-vscode extension for project-specific keybinds. If you use the same 2-3 files in your project, bind & jump without fuzzy finding, clicking, etc.
+vscode extension for project-specific keybinds. If you use the same 2-3 files in your project, bind & jump without fuzzy finding, scrolling through recents, clicking, etc.
 
 ## Installation
 

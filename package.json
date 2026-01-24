@@ -78,6 +78,30 @@
         "key": "alt+3"
       },
       {
+        "command": "file-bind.jumpToSlot4",
+        "key": "alt+4"
+      },
+      {
+        "command": "file-bind.jumpToSlot5",
+        "key": "alt+5"
+      },
+      {
+        "command": "file-bind.jumpToSlot6",
+        "key": "alt+6"
+      },
+      {
+        "command": "file-bind.jumpToSlot7",
+        "key": "alt+7"
+      },
+      {
+        "command": "file-bind.jumpToSlot8",
+        "key": "alt+8"
+      },
+      {
+        "command": "file-bind.jumpToSlot9",
+        "key": "alt+9"
+      },
+      {
         "command": "file-bind.pinToSlot1",
         "key": "alt+shift+1"
       },
@@ -88,6 +112,30 @@
       {
         "command": "file-bind.pinToSlot3",
         "key": "alt+shift+3"
+      },
+      {
+        "command": "file-bind.pinToSlot4",
+        "key": "alt+shift+4"
+      },
+      {
+        "command": "file-bind.pinToSlot5",
+        "key": "alt+shift+5"
+      },
+      {
+        "command": "file-bind.pinToSlot6",
+        "key": "alt+shift+6"
+      },
+      {
+        "command": "file-bind.pinToSlot7",
+        "key": "alt+shift+7"
+      },
+      {
+        "command": "file-bind.pinToSlot8",
+        "key": "alt+shift+8"
+      },
+      {
+        "command": "file-bind.pinToSlot9",
+        "key": "alt+shift+9"
       }
     ],
     "configuration": {
@@ -97,6 +145,13 @@
           "type": "object",
           "default": {},
           "description": "File bindings for quick navigation slots"
+        },
+        "file-bind.slotCount": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 9,
+          "description": "Number of available slots (1-9)"
         }
       }
     }

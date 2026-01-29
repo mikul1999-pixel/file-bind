@@ -5,6 +5,7 @@ interface SlotBinding {
     filePath: string;
     line: number;
     character: number;
+    mode?: "auto" | "static";
 }
 
 type SlotRecord = Record<string, SlotBinding>;
@@ -17,41 +18,83 @@ interface SlotUpdate {
 
 const MAX_SLOT_COUNT = 9;
 const STATUS_BAR_ICONS = [
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)',
-    '$(file)'
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)',
+    '$(go-to-file)'
 ] as const;
 
 export function activate(context: vscode.ExtensionContext): void {
     console.log('File Bind extension is now active');
 
     const statusBarItem = createStatusBar(context);
-    
     const updateStatusBar = (): void => {
-        const slots = getSlots();
-        updateStatusBarDisplay(statusBarItem, slots);
+        updateStatusBarDisplay(statusBarItem, getSlots());
     };
-
-    const config = getConfig();
-    if (config.get('slotCount') === undefined) {
-        config.update('slotCount', 3, vscode.ConfigurationTarget.Global);
-    }
 
     updateStatusBar();
     registerConfigurationWatcher(context, updateStatusBar);
     registerFileWatchers(context, updateStatusBar);
     registerCommands(context, updateStatusBar);
+
+    // Track when user leaves a file
+    let lastEditor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(async newEditor => {
+            if (lastEditor && lastEditor !== newEditor) {
+                await handleEditorLeave(lastEditor, updateStatusBar);
+            }
+            lastEditor = newEditor ?? undefined;
+        })
+    );
 }
 
 export function deactivate(): void {}
 
-// Status bar to show bound files
+// Auto-update cursor position when leaving a file
+async function handleEditorLeave(
+    editor: vscode.TextEditor,
+    updateStatusBar: () => void
+): Promise<void> {
+    const document = editor.document;
+    const filePath = document.uri.fsPath;
+    const relative = getWorkspaceRelativePath(filePath);
+    if (!relative) {return;}
+
+    const slots = getSlots();
+    const slotEntry = Object.entries(slots).find(
+        ([_, binding]) => binding.filePath === relative
+    );
+    if (!slotEntry) {return;}
+
+    const [slotNumber, binding] = slotEntry;
+
+    // Only update if mode is auto
+    const mode = binding.mode ?? "auto";
+    if (mode !== "auto") {return;}
+
+    const position = editor.selection.active;
+
+    const updatedSlots = { ...slots };
+    updatedSlots[slotNumber] = {
+        ...binding,
+        line: position.line,
+        character: position.character
+    };
+
+    const config = getConfig();
+    await config.update('slots', updatedSlots, vscode.ConfigurationTarget.Workspace);
+
+    updateStatusBar();
+}
+
+// Status bar
 function createStatusBar(context: vscode.ExtensionContext): vscode.StatusBarItem {
     const statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right,
@@ -65,6 +108,8 @@ function createStatusBar(context: vscode.ExtensionContext): vscode.StatusBarItem
 
 function updateStatusBarDisplay(statusBarItem: vscode.StatusBarItem, slots: SlotRecord): void {
     const slotCount = getSlotCount();
+    const previewLimit = getPreviewLimit();
+
     const slotTexts = Array.from({ length: slotCount }, (_, i) => {
         const slotNumber = i + 1;
         const binding = slots[slotNumber.toString()];
@@ -72,20 +117,27 @@ function updateStatusBarDisplay(statusBarItem: vscode.StatusBarItem, slots: Slot
         if (binding) {
             const fileName = path.basename(binding.filePath);
             const icon = STATUS_BAR_ICONS[i];
-            return `${icon} ${slotNumber}:${fileName}`;
+            return `${icon} ${slotNumber} ${fileName}:${binding.line + 1}`;
         }
         return null;
     }).filter((text): text is string => text !== null);
-    
+
     if (slotTexts.length > 0) {
-        statusBarItem.text = slotTexts.join('  ');
+        const visible = slotTexts.slice(0, previewLimit);
+        const overflow = slotTexts.length - previewLimit;
+
+        if (overflow > 0) {
+            visible.push(`+${overflow}`);
+        }
+
+        statusBarItem.text = visible.join('  ');
         statusBarItem.show();
     } else {
         statusBarItem.hide();
     }
 }
 
-// Watch for configuration changes
+// Config watcher
 function registerConfigurationWatcher(
     context: vscode.ExtensionContext,
     updateStatusBar: () => void
@@ -93,14 +145,15 @@ function registerConfigurationWatcher(
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('file-bind.slots') || 
-                e.affectsConfiguration('file-bind.slotCount')) {
+                e.affectsConfiguration('file-bind.slotCount') ||
+                e.affectsConfiguration('file-bind.statusPreviewLimit')) {
                 updateStatusBar();
             }
         })
     );
 }
 
-// Watch for file changes
+// File watchers
 function registerFileWatchers(
     context: vscode.ExtensionContext,
     updateStatusBar: () => void
@@ -126,9 +179,7 @@ async function handleFileDeletes(
     const slots = getSlots();
     const workspaceFolder = getWorkspaceFolder();
     
-    if (!workspaceFolder) {
-        return;
-    }
+    if (!workspaceFolder) {return;}
 
     const clearedSlots: string[] = [];
     const updatedSlots = { ...slots };
@@ -158,9 +209,7 @@ async function handleFileRenames(
     const slots = getSlots();
     const workspaceFolder = getWorkspaceFolder();
     
-    if (!workspaceFolder) {
-        return;
-    }
+    if (!workspaceFolder) {return;}
 
     const updatedSlots = { ...slots };
     const updates: SlotUpdate[] = [];
@@ -193,6 +242,7 @@ async function handleFileRenames(
     }
 }
 
+// Commands
 function registerCommands(
     context: vscode.ExtensionContext,
     updateStatusBar: () => void
@@ -281,7 +331,8 @@ async function moveSlot(
     updatedSlots[toSlot.toString()] = {
         filePath: relativePath,
         line: position.line,
-        character: position.character
+        character: position.character,
+        mode: slots[fromSlot]?.mode ?? "auto"
     };
     
     await config.update('slots', updatedSlots, vscode.ConfigurationTarget.Workspace);
@@ -305,8 +356,10 @@ async function updateSlot(
     updatedSlots[slotNumber.toString()] = {
         filePath: relativePath,
         line: position.line,
-        character: position.character
+        character: position.character,
+        mode: oldBinding?.mode ?? "auto"
     };
+
     await config.update('slots', updatedSlots, vscode.ConfigurationTarget.Workspace);
     
     if (oldBinding) {
@@ -316,7 +369,7 @@ async function updateSlot(
         );
     } else {
         vscode.window.showInformationMessage(
-            `Pinned ${fileName} (line ${position.line + 1}) to Slot ${slotNumber}`
+            `Bound ${fileName} (line ${position.line + 1}) to Slot ${slotNumber}`
         );
     }
 }
@@ -342,7 +395,7 @@ function registerJumpCommand(
 
             if (!binding) {
                 vscode.window.showWarningMessage(
-                    `Slot ${slotNumber} is empty. Pin a file with Alt+Shift+${slotNumber}`
+                    `Slot ${slotNumber} is empty. Bind a file with Alt+Shift+${slotNumber}`
                 );
                 return;
             }
@@ -480,20 +533,17 @@ function createQuickPickItems(slots: SlotRecord): vscode.QuickPickItem[] {
         const binding = slots[slotNumber.toString()];
         
         if (binding) {
-            const fileName = path.basename(binding.filePath);
-            const dirName = path.dirname(binding.filePath);
             const lineInfo = `Line ${binding.line + 1}:${binding.character}`;
+            const modeInfo = binding.mode ?? "auto";
             return {
-                label: `$(pin) Slot ${slotNumber}: ${fileName}`,
-                description: `${lineInfo}${dirName !== '.' ? ' • ' + dirName : ''}`,
-                detail: `Alt+${slotNumber} to jump, Alt+Shift+${slotNumber} to rebind`
+                label: `$(sparkle) Slot ${slotNumber}: ${binding.filePath}`,
+                description: `${lineInfo} — ${modeInfo}`
             };
         }
         
         return {
             label: `$(circle-outline) Slot ${slotNumber}: Empty`,
-            description: '',
-            detail: `Alt+Shift+${slotNumber} to bind a file`
+            description: ''
         };
     });
 }
@@ -508,6 +558,7 @@ function registerConfigureKeybindingsCommand(): vscode.Disposable {
     });
 }
 
+// Helpers
 function getConfig(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration('file-bind');
 }
@@ -523,10 +574,14 @@ function getSlots(): SlotRecord {
             migratedSlots[key] = {
                 filePath: value,
                 line: 0,
-                character: 0
+                character: 0,
+                mode: "auto"
             };
         } else {
-            migratedSlots[key] = value;
+            migratedSlots[key] = {
+                ...value,
+                mode: value.mode ?? "auto"
+            };
         }
     }
     
@@ -537,6 +592,13 @@ function getSlotCount(): number {
     const config = getConfig();
     const count = config.get<number>('slotCount', 3);
     return Math.min(Math.max(count, 1), MAX_SLOT_COUNT);
+}
+
+function getPreviewLimit(): number {
+    return Math.min(
+        Math.max(getConfig().get<number>('statusPreviewLimit', 3), 1),
+        getSlotCount()
+    );
 }
 
 function getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {

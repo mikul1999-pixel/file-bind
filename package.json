@@ -3,6 +3,7 @@
   "displayName": "File Bind",
   "description": "Bind files to keyboard shortcuts for quick navigation",
   "version": "0.1.0",
+  "icon": "media/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/mikul1999-pixel/file-bind.git"
@@ -152,6 +153,13 @@
           "minimum": 1,
           "maximum": 9,
           "description": "Number of available slots (1-9)"
+        },
+        "file-bind.statusPreviewLimit": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 9,
+          "description": "Number of slots shown in status bar (1-9)"
         }
       }
     }

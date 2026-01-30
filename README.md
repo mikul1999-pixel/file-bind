@@ -13,21 +13,21 @@ Intentionally minimal, not many fancy features
 ## Extension settings
 - "Slot Count" enable up to 9 slots
 - "Status Preview Limit" limit number of slots shown on bottom status bar
-- ```.vscode/settings.json``` 
-    - can manually edit or copy/paste bindings
-    - config line number binding vs auto-remembering last line
+- ```command palette -> "File Bind: Configure Slots"``` 
+    - manually edit slots. or copy/paste bindings
+    - set mode. save a specific line number or teleport to where you left off
 
 ```bash
-"file-bind.slots": {
+{
     "1": {
-        "filePath": "src/extension.ts",
-        "line": 627,
-        "character": 3,
+        "filePath": "package.json",
+        "line": 349,
+        "character": 2,
         "mode": "auto"
     },
     "2": {
-        "filePath": "README.md",
-        "line": 1,
+        "filePath": "src/extension.ts",
+        "line": 11,
         "character": 0,
         "mode": "static"
     }
@@ -35,7 +35,6 @@ Intentionally minimal, not many fancy features
 ```
 
 ## Other commands
-From the command palette (ctrl+shift+p): <br>
 - "File Bind: Configure Keybindings" --> Customize Keybindings to replace ```Alt+1/2/3```
 - "File Bind: Show Bound Files" --> Show dropdown panel with bound slots & files (can trigger by clicking on status bar)
 - "File Bind: Clear Slot 1/2/3" --> Delete the bind setting for a given slot

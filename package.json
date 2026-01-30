@@ -25,6 +25,10 @@
         "title": "File Bind: Configure Keybindings"
       },
       {
+        "command": "file-bind.openConfig",
+        "title": "File Bind: Configure Slots"
+      },
+      {
         "command": "file-bind.pinToSlot1",
         "title": "File Bind: Pin Current File to Slot 1"
       },
@@ -142,11 +146,6 @@
     "configuration": {
       "title": "File Bind",
       "properties": {
-        "file-bind.slots": {
-          "type": "object",
-          "default": {},
-          "description": "File bindings for quick navigation slots"
-        },
         "file-bind.slotCount": {
           "type": "number",
           "default": 3,

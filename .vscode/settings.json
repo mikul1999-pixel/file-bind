@@ -7,19 +7,5 @@
         "out": true, 
         "dist": true 
     },
-    "typescript.tsc.autoDetect": "off",
-    "file-bind.slots": {
-        "1": {
-            "filePath": "src/extension.ts",
-            "line": 7,
-            "character": 28,
-            "mode": "auto"
-        },
-        "2": {
-            "filePath": "README.md",
-            "line": 1,
-            "character": 0,
-            "mode": "static"
-        }
-    }
+    "typescript.tsc.autoDetect": "off"
 }

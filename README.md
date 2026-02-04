@@ -1,6 +1,6 @@
 # file-bind
 
-vscode extension for project-specific keybinds. If you use the same 2-3 files in your cwd, hop back & forth without fuzzy finding, scrolling through recents, clicking, etc.
+vscode extension for project-specific keybinds. Switch between the same 2-3 files in the cwd without fuzzy finding, scrolling through recents, clicking, etc.
 
 ## Usage
 Intentionally minimal, not many fancy features
@@ -15,7 +15,7 @@ Intentionally minimal, not many fancy features
 - "Status Preview Limit" limit number of slots shown on bottom status bar
 - ```command palette -> "File Bind: Configure Slots"``` 
     - manually edit slots. or copy/paste bindings
-    - set mode. save a specific line number or teleport to where you left off
+    - set "mode". setting to save a specific line number or teleport to where you left off
 
 ```bash
 {

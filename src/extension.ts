@@ -17,18 +17,30 @@ interface SlotUpdate {
     newName: string;
 }
 
+interface QuickPickItemSlot extends vscode.QuickPickItem {
+    slotNumber?: number;
+}
+
+// Constants
 const MAX_SLOT_COUNT = 9;
-const STATUS_BAR_ICONS = [
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)',
-    '$(go-to-file)'
-] as const;
+const WORKSPACE_STATE_KEY = 'slots';
+const CONFIG_URI = 'file-bind-config:/slots.json';
+
+// vscode icons
+const STATUS_ICONS = {
+    DEFAULT: 'go-to-file',
+    ACTIVE: 'file-text',
+} as const;
+const PICK_ICONS = {
+    BOUND: 'json',
+    BOUND_ACTIVE: 'bracket-dot',
+    EMPTY: 'circle-outline',
+} as const;
+const PICK_ACTIONS = {
+    BIND: 'add',
+    REBIND: 'refresh',
+    CLEAR: 'trash',
+} as const;
 
 let globalContext: vscode.ExtensionContext;
 let configFs: ConfigFileSystemProvider;
@@ -67,6 +79,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 await handleEditorLeave(lastEditor, updateStatusBar);
             }
             lastEditor = newEditor ?? undefined;
+            updateStatusBar(); // Update to show active file indicator
         })
     );
 }
@@ -84,9 +97,7 @@ async function handleEditorLeave(
     if (!relative) {return;}
 
     const slots = getSlots();
-    const slotEntry = Object.entries(slots).find(
-        ([_, binding]) => binding.filePath === relative
-    );
+    const slotEntry = findSlotByPath(slots, relative);
     if (!slotEntry) {return;}
 
     const [slotNumber, binding] = slotEntry;
@@ -123,14 +134,16 @@ function createStatusBar(context: vscode.ExtensionContext): vscode.StatusBarItem
 function updateStatusBarDisplay(statusBarItem: vscode.StatusBarItem, slots: SlotRecord): void {
     const slotCount = getSlotCount();
     const previewLimit = getPreviewLimit();
+    const activeFilePath = getActiveFilePath();
 
     const slotTexts = Array.from({ length: slotCount }, (_, i) => {
         const slotNumber = i + 1;
-        const binding = slots[slotNumber.toString()];
+        const binding = slots[getSlotKey(slotNumber)];
         
         if (binding) {
             const fileName = path.basename(binding.filePath);
-            const icon = STATUS_BAR_ICONS[i];
+            const isActive = activeFilePath === binding.filePath;
+            const icon = isActive ? getIconLabel(STATUS_ICONS.ACTIVE) : getIconLabel(STATUS_ICONS.DEFAULT);
             return `${icon} ${slotNumber} ${fileName}:${binding.line + 1}`;
         }
         return null;
@@ -276,11 +289,8 @@ function registerPinCommand(
     return vscode.commands.registerCommand(
         `file-bind.pinToSlot${slotNumber}`,
         async () => {
-            const slotCount = getSlotCount();
-            if (slotNumber > slotCount) {
-                vscode.window.showWarningMessage(
-                    `Slot ${slotNumber} is disabled. Enable it in settings (current limit: ${slotCount})`
-                );
+            if (!isSlotEnabled(slotNumber)) {
+                showSlotDisabledWarning(slotNumber);
                 return;
             }
 
@@ -315,11 +325,9 @@ async function pinFileToSlot(
     const slots = getSlots();
     const fileName = path.basename(fullPath);
     
-    const existingSlot = Object.entries(slots).find(
-        ([_, binding]) => binding.filePath === relativePath
-    )?.[0];
+    const existingSlot = findSlotByPath(slots, relativePath)?.[0];
     
-    if (existingSlot && existingSlot !== slotNumber.toString()) {
+    if (existingSlot && existingSlot !== getSlotKey(slotNumber)) {
         await moveSlot(existingSlot, slotNumber, relativePath, fileName, position);
     } else {
         await updateSlot(slotNumber, relativePath, fileName, position, slots);
@@ -338,7 +346,7 @@ async function moveSlot(
     const updatedSlots = { ...slots };
     
     delete updatedSlots[fromSlot];
-    updatedSlots[toSlot.toString()] = {
+    updatedSlots[getSlotKey(toSlot)] = {
         filePath: relativePath,
         line: position.line,
         character: position.character,
@@ -359,10 +367,11 @@ async function updateSlot(
     position: vscode.Position,
     slots: SlotRecord
 ): Promise<void> {
-    const oldBinding = slots[slotNumber.toString()];
+    const slotKey = getSlotKey(slotNumber);
+    const oldBinding = slots[slotKey];
     const updatedSlots = { ...slots };
     
-    updatedSlots[slotNumber.toString()] = {
+    updatedSlots[slotKey] = {
         filePath: relativePath,
         line: position.line,
         character: position.character,
@@ -391,16 +400,13 @@ function registerJumpCommand(
     return vscode.commands.registerCommand(
         `file-bind.jumpToSlot${slotNumber}`,
         async () => {
-            const slotCount = getSlotCount();
-            if (slotNumber > slotCount) {
-                vscode.window.showWarningMessage(
-                    `Slot ${slotNumber} is disabled. Enable it in settings (current limit: ${slotCount})`
-                );
+            if (!isSlotEnabled(slotNumber)) {
+                showSlotDisabledWarning(slotNumber);
                 return;
             }
 
             const slots = getSlots();
-            const binding = slots[slotNumber.toString()];
+            const binding = slots[getSlotKey(slotNumber)];
 
             if (!binding) {
                 vscode.window.showWarningMessage(
@@ -442,7 +448,11 @@ async function openFile(
             vscode.TextEditorRevealType.InCenter
         );
     } catch (error) {
-        await handleOpenFileError(fullPath, slotNumber, slots, updateStatusBar);
+        if (error instanceof vscode.FileSystemError) {
+            await handleOpenFileError(fullPath, slotNumber, slots, updateStatusBar);
+        } else {
+            vscode.window.showErrorMessage(`Unexpected error opening file: ${error}`);
+        }
     }
 }
 
@@ -478,16 +488,13 @@ function registerClearCommand(
     return vscode.commands.registerCommand(
         `file-bind.clearSlot${slotNumber}`,
         async () => {
-            const slotCount = getSlotCount();
-            if (slotNumber > slotCount) {
-                vscode.window.showWarningMessage(
-                    `Slot ${slotNumber} is disabled. Enable it in settings (current limit: ${slotCount})`
-                );
+            if (!isSlotEnabled(slotNumber)) {
+                showSlotDisabledWarning(slotNumber);
                 return;
             }
 
             const slots = getSlots();
-            const binding = slots[slotNumber.toString()];
+            const binding = slots[getSlotKey(slotNumber)];
             
             if (!binding) {
                 vscode.window.showInformationMessage(
@@ -509,7 +516,7 @@ function registerClearCommand(
 
 async function clearSlot(slotNumber: number, slots: SlotRecord): Promise<void> {
     const updatedSlots = { ...slots };
-    delete updatedSlots[slotNumber.toString()];
+    delete updatedSlots[getSlotKey(slotNumber)];
     await saveSlots(updatedSlots);
 }
 
@@ -517,48 +524,105 @@ async function clearSlot(slotNumber: number, slots: SlotRecord): Promise<void> {
 function registerShowStatusCommand(): vscode.Disposable {
     return vscode.commands.registerCommand('file-bind.showStatus', async () => {
         const slots = getSlots();
-        const items = createQuickPickItems(slots);
         
-        const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: 'File Bind Slots',
-            title: 'Current File Bindings'
-        });
+        // Create QuickPick with buttons
+        const quickPick = vscode.window.createQuickPick();
+        quickPick.title = 'Current File Bindings';
+        quickPick.placeholder = 'Select a slot to jump, or use buttons to manage';
+        quickPick.items = createQuickPickItems(slots);
         
-        if (!selected) { return; }
+        // Handle selection
+        quickPick.onDidAccept(() => {
+            const selected = quickPick.selectedItems[0];
+            if (!selected) { return; }
 
-        if (selected.label === '$(gear) Configure Slots') {
-            await vscode.commands.executeCommand('file-bind.openConfig');
-            return;
-        }
-
-        if (selected.label.includes('Slot')) {
-            const slotMatch = selected.label.match(/Slot (\d)/);
-            if (slotMatch && !selected.label.includes('Empty')) {
-                const slotNumber = parseInt(slotMatch[1], 10);
-                await vscode.commands.executeCommand(`file-bind.jumpToSlot${slotNumber}`);
+            if (selected.label === '$(gear) Configure Slots') {
+                vscode.commands.executeCommand('file-bind.openConfig');
+                quickPick.hide();
+                return;
             }
-        }
+
+            if (selected.label.includes('Slot')) {
+                const slotMatch = selected.label.match(/Slot (\d)/);
+                if (slotMatch && !selected.label.includes('Empty')) {
+                    const slotNumber = parseInt(slotMatch[1], 10);
+                    vscode.commands.executeCommand(`file-bind.jumpToSlot${slotNumber}`);
+                    quickPick.hide();
+                }
+            }
+        });
+
+        // Handle button clicks
+        quickPick.onDidTriggerItemButton(async (e) => {
+            const item = e.item as QuickPickItemSlot;
+            const slotNumber = item.slotNumber;
+            
+            if (!slotNumber) { return; }
+            const buttonIcon = (e.button.iconPath as vscode.ThemeIcon).id;
+
+            if (buttonIcon === PICK_ACTIONS.CLEAR) {
+                // Clear slot
+                await vscode.commands.executeCommand(`file-bind.clearSlot${slotNumber}`);
+                quickPick.items = createQuickPickItems(getSlots());
+            } else if (buttonIcon === PICK_ACTIONS.REBIND || buttonIcon === PICK_ACTIONS.BIND) {
+                // Re-bind current file to this slot
+                const editor = vscode.window.activeTextEditor;
+                if (!editor) {
+                    vscode.window.showWarningMessage('No active file to bind');
+                    return;
+                }
+                await vscode.commands.executeCommand(`file-bind.pinToSlot${slotNumber}`);
+                quickPick.items = createQuickPickItems(getSlots());
+            }
+        });
+
+        quickPick.show();
     });
 }
 
-function createQuickPickItems(slots: SlotRecord): vscode.QuickPickItem[] {
+// Create QuickPick menu
+function createQuickPickItems(slots: SlotRecord): QuickPickItemSlot[] {
     const slotCount = getSlotCount();
-    const items: vscode.QuickPickItem[] = Array.from({ length: slotCount }, (_, i) => {
+    const activeFilePath = getActiveFilePath();
+    
+    const items: QuickPickItemSlot[] = Array.from({ length: slotCount }, (_, i) => {
         const slotNumber = i + 1;
-        const binding = slots[slotNumber.toString()];
+        const binding = slots[getSlotKey(slotNumber)];
         
         if (binding) {
             const lineInfo = `Line ${binding.line + 1}:${binding.character}`;
             const modeInfo = binding.mode ?? "auto";
+            const isActive = activeFilePath === binding.filePath;
+            const icon = isActive ? getIconLabel(PICK_ICONS.BOUND_ACTIVE) : getIconLabel(PICK_ICONS.BOUND);
+            
             return {
-                label: `$(sparkle) Slot ${slotNumber}: ${binding.filePath}`,
-                description: `${lineInfo} — ${modeInfo}`
+                label: `${icon} Slot ${slotNumber}: ${binding.filePath}`,
+                description: `${lineInfo} — ${modeInfo}`,
+                slotNumber: slotNumber,
+                buttons: [
+                    {
+                        iconPath: new vscode.ThemeIcon(PICK_ACTIONS.REBIND),
+                        tooltip: 'Re-bind current file to this slot'
+                    },
+                    {
+                        iconPath: new vscode.ThemeIcon(PICK_ACTIONS.CLEAR),
+                        tooltip: 'Clear this slot'
+                    }
+                ]
             };
         }
         
+        // Empty slot - only show "bind" button
         return {
-            label: `$(circle-outline) Slot ${slotNumber}: Empty`,
-            description: ''
+            label: `${getIconLabel(PICK_ICONS.EMPTY)} Slot ${slotNumber}: Empty`,
+            description: '',
+            slotNumber: slotNumber,
+            buttons: [
+                {
+                    iconPath: new vscode.ThemeIcon(PICK_ACTIONS.BIND),
+                    tooltip: 'Bind current file to this slot'
+                }
+            ]
         };
     });
 
@@ -588,45 +652,24 @@ function registerConfigureKeybindingsCommand(): vscode.Disposable {
 // Open virtual config file
 function registerOpenConfigCommand(): vscode.Disposable {
     return vscode.commands.registerCommand('file-bind.openConfig', async () => {
-        const uri = vscode.Uri.parse('file-bind-config:/slots.json');
+        const uri = vscode.Uri.parse(CONFIG_URI);
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc);
     });
 }
 
-// Helpers
+// Helper functions
 function getConfig(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration('file-bind');
 }
 
 function getSlots(): SlotRecord {
-    // Read from workspace state
-    const slots = globalContext.workspaceState.get<SlotRecord>('slots', {});
-    
-    // Migrate string path to SlotBinding type 
-    const migratedSlots: SlotRecord = {};
-    for (const [key, value] of Object.entries(slots)) {
-        if (typeof value === 'string') {
-            migratedSlots[key] = {
-                filePath: value,
-                line: 0,
-                character: 0,
-                mode: "auto"
-            };
-        } else {
-            migratedSlots[key] = {
-                ...value,
-                mode: value.mode ?? "auto"
-            };
-        }
-    }
-    
-    return migratedSlots;
+    return globalContext.workspaceState.get<SlotRecord>(WORKSPACE_STATE_KEY, {});
 }
 
 async function saveSlots(slots: SlotRecord): Promise<void> {
-    await globalContext.workspaceState.update('slots', slots);
-    configFs.refresh(vscode.Uri.parse('file-bind-config:/slots.json'));
+    await globalContext.workspaceState.update(WORKSPACE_STATE_KEY, slots);
+    configFs.refresh(vscode.Uri.parse(CONFIG_URI));
 }
 
 function getSlotCount(): number {
@@ -652,6 +695,34 @@ function getWorkspaceRelativePath(filePath: string): string | null {
         return null;
     }
     return path.relative(workspaceFolder.uri.fsPath, filePath);
+}
+
+function getActiveFilePath(): string | null {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) { return null; }
+    return getWorkspaceRelativePath(editor.document.uri.fsPath);
+}
+
+function getIconLabel(id: string): string {
+    return `$(${id})`;
+}
+
+function getSlotKey(slotNumber: number): string {
+    return slotNumber.toString();
+}
+
+function isSlotEnabled(slotNumber: number): boolean {
+    return slotNumber <= getSlotCount();
+}
+
+function showSlotDisabledWarning(slotNumber: number): void {
+    vscode.window.showWarningMessage(
+        `Slot ${slotNumber} is disabled. Enable it in settings (current limit: ${getSlotCount()})`
+    );
+}
+
+function findSlotByPath(slots: SlotRecord, filePath: string): [string, SlotBinding] | undefined {
+    return Object.entries(slots).find(([_, binding]) => binding.filePath === filePath);
 }
 
 function showDeletionMessage(clearedSlots: string[]): void {
@@ -684,7 +755,7 @@ class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     private _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
     readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._onDidChangeFile.event;
 
-    watch(uri: vscode.Uri, options: { recursive: boolean; excludes: string[]; }): vscode.Disposable {
+    watch(_uri: vscode.Uri, _options: { recursive: boolean; excludes: string[]; }): vscode.Disposable {
         return new vscode.Disposable(() => { });
     }
 
@@ -715,7 +786,7 @@ class ConfigFileSystemProvider implements vscode.FileSystemProvider {
         return [];
     }
 
-    createDirectory(uri: vscode.Uri): void {
+    createDirectory(_uri: vscode.Uri): void {
         throw vscode.FileSystemError.NoPermissions();
     }
 
@@ -728,12 +799,12 @@ class ConfigFileSystemProvider implements vscode.FileSystemProvider {
         throw vscode.FileSystemError.FileNotFound();
     }
 
-    async writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean; }): Promise<void> {
+    async writeFile(uri: vscode.Uri, content: Uint8Array, _options: { create: boolean; overwrite: boolean; }): Promise<void> {
         if (uri.path === '/slots.json') {
             try {
                 const json = new TextDecoder().decode(content);
                 const slots = JSON.parse(json);
-                await globalContext.workspaceState.update('slots', slots);
+                await globalContext.workspaceState.update(WORKSPACE_STATE_KEY, slots);
                 this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
             } catch (e) {
                 throw vscode.FileSystemError.Unavailable("Invalid JSON");
@@ -743,15 +814,15 @@ class ConfigFileSystemProvider implements vscode.FileSystemProvider {
         }
     }
 
-    delete(uri: vscode.Uri, options: { recursive: boolean; }): void {
+    delete(_uri: vscode.Uri, _options: { recursive: boolean; }): void {
         throw vscode.FileSystemError.NoPermissions();
     }
 
-    rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean; }): void {
+    rename(_oldUri: vscode.Uri, _newUri: vscode.Uri, _options: { overwrite: boolean; }): void {
         throw vscode.FileSystemError.NoPermissions();
     }
     
-    refresh(uri: vscode.Uri) {
+    refresh(uri: vscode.Uri): void {
         this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
     }
 }

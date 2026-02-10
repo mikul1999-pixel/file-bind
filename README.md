@@ -2,6 +2,10 @@
 
 vscode extension for project-specific keybinds. Switch between the same 2-3 files in the cwd without fuzzy finding, scrolling through recents, clicking, etc.
 
+> [!WARNING]
+>
+> This extension is a personal project, so ongoing support may not be provided
+
 ## Usage
 Intentionally minimal, not many fancy features
 - Bind up to 9 files to slots (default is 3)

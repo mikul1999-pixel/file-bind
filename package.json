@@ -2,7 +2,7 @@
   "name": "file-bind",
   "displayName": "File Bind",
   "description": "Bind files to keyboard shortcuts for quick navigation",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "icon": "media/icon.png",
   "publisher": "mikul",
   "repository": {
@@ -30,118 +30,139 @@
         "title": "File Bind: Configure Slots"
       },
       {
-        "command": "file-bind.pinToSlot1",
-        "title": "File Bind: Pin Current File to Slot 1"
+        "command": "file-bind.pinToSlot",
+        "title": "File Bind: Pin Current File to Slot"
       },
       {
-        "command": "file-bind.pinToSlot2",
-        "title": "File Bind: Pin Current File to Slot 2"
+        "command": "file-bind.jumpToSlot",
+        "title": "File Bind: Jump to Slot"
       },
       {
-        "command": "file-bind.pinToSlot3",
-        "title": "File Bind: Pin Current File to Slot 3"
-      },
-      {
-        "command": "file-bind.jumpToSlot1",
-        "title": "File Bind: Jump to Slot 1"
-      },
-      {
-        "command": "file-bind.jumpToSlot2",
-        "title": "File Bind: Jump to Slot 2"
-      },
-      {
-        "command": "file-bind.jumpToSlot3",
-        "title": "File Bind: Jump to Slot 3"
-      },
-      {
-        "command": "file-bind.clearSlot1",
-        "title": "File Bind: Clear Slot 1"
-      },
-      {
-        "command": "file-bind.clearSlot2",
-        "title": "File Bind: Clear Slot 2"
-      },
-      {
-        "command": "file-bind.clearSlot3",
-        "title": "File Bind: Clear Slot 3"
+        "command": "file-bind.clearSlot",
+        "title": "File Bind: Clear Slot"
       },
       {
         "command": "file-bind.showStatus",
         "title": "File Bind: Show Bound Files"
+      },
+      {
+        "command": "file-bind.jumpPrevious",
+        "title": "File Bind: Jump to Previous File"
       }
     ],
     "keybindings": [
       {
-        "command": "file-bind.jumpToSlot1",
-        "key": "alt+1"
+        "command": "file-bind.jumpPrevious",
+        "key": "alt+q",
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot2",
-        "key": "alt+2"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+1",
+        "args": 1,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot3",
-        "key": "alt+3"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+2",
+        "args": 2,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot4",
-        "key": "alt+4"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+3",
+        "args": 3,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot5",
-        "key": "alt+5"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+4",
+        "args": 4,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot6",
-        "key": "alt+6"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+5",
+        "args": 5,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot7",
-        "key": "alt+7"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+6",
+        "args": 6,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot8",
-        "key": "alt+8"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+7",
+        "args": 7,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.jumpToSlot9",
-        "key": "alt+9"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+8",
+        "args": 8,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot1",
-        "key": "alt+shift+1"
+        "command": "file-bind.jumpToSlot",
+        "key": "alt+9",
+        "args": 9,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot2",
-        "key": "alt+shift+2"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+1",
+        "args": 1,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot3",
-        "key": "alt+shift+3"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+2",
+        "args": 2,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot4",
-        "key": "alt+shift+4"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+3",
+        "args": 3,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot5",
-        "key": "alt+shift+5"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+4",
+        "args": 4,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot6",
-        "key": "alt+shift+6"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+5",
+        "args": 5,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot7",
-        "key": "alt+shift+7"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+6",
+        "args": 6,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot8",
-        "key": "alt+shift+8"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+7",
+        "args": 7,
+        "when": "editorTextFocus"
       },
       {
-        "command": "file-bind.pinToSlot9",
-        "key": "alt+shift+9"
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+8",
+        "args": 8,
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "file-bind.pinToSlot",
+        "key": "alt+shift+9",
+        "args": 9,
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
@@ -179,15 +200,15 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.52.0",
-    "eslint": "^9.39.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript-eslint": "^8.52.0"
   }
 }

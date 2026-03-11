@@ -2,9 +2,8 @@
 
 vscode extension for project-specific keybinds. Switch between the same 2-3 files in the cwd without fuzzy finding, scrolling through recents, clicking, etc.
 
-> [!WARNING]
->
-> This extension is a personal project, so ongoing support may not be provided
+## Disclaimer
+*This extension is a personal project, so ongoing support may not be provided*
 
 ## Usage
 Intentionally minimal, not many fancy features
@@ -39,6 +38,9 @@ Intentionally minimal, not many fancy features
 ```
 
 ## Other commands
-- "File Bind: Configure Keybindings" --> Customize Keybindings to replace ```Alt+1/2/3```
+- "File Bind: Jump to Previous File" --> ```Alt+Q``` Go to last file & cursor position
+- "File Bind: Cycle Slots Forward" --> ```Alt+]``` Go to next slot numerically, 1-9
+- "File Bind: Cycle Slots Backward" --> ```Alt+[``` Go to previous slot numerically, 9-1
+- "File Bind: Configure Keybindings" --> Customize Keybindings to replace ```Alt+1/2/3``` ...
 - "File Bind: Show Bound Files" --> Show dropdown panel with bound slots & files (can trigger by clicking on status bar)
-- "File Bind: Clear Slot 1/2/3" --> Delete the bind setting for a given slot
+- "File Bind: Clear Slot" --> Delete the bind setting for a given slot

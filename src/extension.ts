@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { CONFIG_URI } from './config/constants';
 import { registerConfigCommands } from './commands/configCommands';
+import { registerCycleCommands } from './commands/cycleCommands';
 import { registerJumpPreviousCommand } from './commands/jumpPreviousCommand';
 import { registerShowStatusCommand } from './commands/statusCommand';
 import { registerSlotCommands } from './commands/slotCommands';
 import { ConfigFileSystemProvider } from './fs/configFileSystemProvider';
 import { EditorTracker } from './services/editorTracker';
 import { registerFileWatchers } from './services/fileSync';
+import { SlotCycleTracker } from './services/slotCycleTracker';
 import { createSlotStore, type SlotStore } from './services/slotStore';
 import { findSlotByPath } from './utils/slots';
 import { getWorkspaceRelativePath } from './utils/workspace';
@@ -41,6 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
     registerSlotCommands(context, slotStore, updateStatusBar);
     registerShowStatusCommand(context, slotStore);
     registerConfigCommands(context);
+    registerCycleCommands(context, new SlotCycleTracker(slotStore));
 
     // Editor tracking
     const editorTracker = new EditorTracker();

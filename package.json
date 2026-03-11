@@ -48,12 +48,30 @@
       {
         "command": "file-bind.jumpPrevious",
         "title": "File Bind: Jump to Previous File"
+      },
+      {
+        "command": "file-bind.cycleSlotsForward",
+        "title": "File Bind: Cycle Slots Forward"
+      },
+      {
+        "command": "file-bind.cycleSlotsBackward",
+        "title": "File Bind: Cycle Slots Backward"
       }
     ],
     "keybindings": [
       {
         "command": "file-bind.jumpPrevious",
         "key": "alt+q",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "file-bind.cycleSlotsForward",
+        "key": "alt+]",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "file-bind.cycleSlotsBackward",
+        "key": "alt+[",
         "when": "editorTextFocus"
       },
       {

@@ -13,6 +13,9 @@ export interface SlotStore {
     getSetNames: () => string[];
     getSlotsForSet: (setName: string) => SlotRecord;
     saveSlotsForSet: (setName: string, slots: SlotRecord) => Promise<void>;
+    createSet: (setName: string, sourceSetName?: string) => Promise<void>;
+    renameSet: (setName: string, nextSetName: string) => Promise<void>;
+    deleteSet: (setName: string) => Promise<void>;
     getSlots: () => SlotRecord;
     saveSlots: (slots: SlotRecord) => Promise<void>;
 }
@@ -69,6 +72,89 @@ export function createSlotStore(
             };
 
             await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
+            onDidSave?.();
+        },
+        createSet: async (setName: string, sourceSetName?: string) => {
+            const normalizedSetName = normalizeSetName(setName);
+            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+                throw new Error('Invalid set name');
+            }
+
+            const slotSets = readSlotSets(context.workspaceState);
+            if (slotSets[normalizedSetName]) {
+                throw new Error('Slot set already exists');
+            }
+
+            const sourceSet = normalizeSetName(sourceSetName ?? getActiveSetName(context.workspaceState));
+            const sourceSlots = sourceSet === DEFAULT_SET_NAME
+                ? readSlotRecord(context.workspaceState.get<unknown>(WORKSPACE_STATE_KEY))
+                : slotSets[sourceSet] ?? {};
+
+            const updatedSlotSets: Record<string, SlotRecord> = {
+                ...slotSets,
+                [normalizedSetName]: { ...sourceSlots }
+            };
+
+            await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
+            onDidSave?.();
+        },
+        renameSet: async (setName: string, nextSetName: string) => {
+            const normalizedSetName = normalizeSetName(setName);
+            const normalizedNextSetName = normalizeSetName(nextSetName);
+
+            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+                throw new Error('Cannot rename default set');
+            }
+
+            if (!normalizedNextSetName || normalizedNextSetName === DEFAULT_SET_NAME) {
+                throw new Error('Invalid new set name');
+            }
+
+            if (normalizedSetName === normalizedNextSetName) {
+                return;
+            }
+
+            const slotSets = readSlotSets(context.workspaceState);
+            if (!slotSets[normalizedSetName]) {
+                throw new Error('Slot set not found');
+            }
+
+            if (slotSets[normalizedNextSetName]) {
+                throw new Error('Slot set already exists');
+            }
+
+            const { [normalizedSetName]: currentSlots, ...rest } = slotSets;
+            const updatedSlotSets: Record<string, SlotRecord> = {
+                ...rest,
+                [normalizedNextSetName]: currentSlots
+            };
+
+            await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
+
+            if (getActiveSetName(context.workspaceState) === normalizedSetName) {
+                await context.workspaceState.update(ACTIVE_SET_STATE_KEY, normalizedNextSetName);
+            }
+
+            onDidSave?.();
+        },
+        deleteSet: async (setName: string) => {
+            const normalizedSetName = normalizeSetName(setName);
+            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+                throw new Error('Cannot delete default set');
+            }
+
+            const slotSets = readSlotSets(context.workspaceState);
+            if (!slotSets[normalizedSetName]) {
+                return;
+            }
+
+            const { [normalizedSetName]: _removed, ...rest } = slotSets;
+            await context.workspaceState.update(SLOT_SETS_STATE_KEY, rest);
+
+            if (getActiveSetName(context.workspaceState) === normalizedSetName) {
+                await context.workspaceState.update(ACTIVE_SET_STATE_KEY, DEFAULT_SET_NAME);
+            }
+
             onDidSave?.();
         },
         getSlots: () => readSlotsForActiveSet(context.workspaceState),

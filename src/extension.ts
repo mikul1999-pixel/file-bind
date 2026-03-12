@@ -3,6 +3,7 @@ import { CONFIG_URI } from './config/constants';
 import { registerConfigCommands } from './commands/configCommands';
 import { registerCycleCommands } from './commands/cycleCommands';
 import { registerJumpPreviousCommand } from './commands/jumpPreviousCommand';
+import { registerSlotSetManagerCommand } from './commands/slotSetManagerCommand';
 import { registerShowStatusCommand } from './commands/statusCommand';
 import { registerSlotCommands } from './commands/slotCommands';
 import { ConfigFileSystemProvider } from './fs/configFileSystemProvider';
@@ -41,6 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
     registerConfigurationWatcher(context, updateStatusBar);
     registerFileWatchers(context, slotStore, updateStatusBar);
     registerSlotCommands(context, slotStore, updateStatusBar);
+    registerSlotSetManagerCommand(context, slotStore);
     registerShowStatusCommand(context, slotStore);
     registerConfigCommands(context);
     registerCycleCommands(context, new SlotCycleTracker(slotStore));

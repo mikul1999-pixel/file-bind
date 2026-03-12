@@ -46,6 +46,10 @@
         "title": "File Bind: Show Bound Files"
       },
       {
+        "command": "file-bind.manageSlotSets",
+        "title": "File Bind: Manage Slot Sets"
+      },
+      {
         "command": "file-bind.jumpPrevious",
         "title": "File Bind: Jump to Previous File"
       },

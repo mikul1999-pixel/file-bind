@@ -8,6 +8,11 @@ const SLOT_SETS_STATE_KEY = 'slotSets';
 
 // Slot store manages core retrieval and saving of slot bindings
 export interface SlotStore {
+    getActiveSet: () => string;
+    setActiveSet: (setName: string) => Promise<void>;
+    getSetNames: () => string[];
+    getSlotsForSet: (setName: string) => SlotRecord;
+    saveSlotsForSet: (setName: string, slots: SlotRecord) => Promise<void>;
     getSlots: () => SlotRecord;
     saveSlots: (slots: SlotRecord) => Promise<void>;
 }
@@ -17,11 +22,41 @@ export function createSlotStore(
     onDidSave?: () => void
 ): SlotStore {
     return {
-        getSlots: () => readSlotsForActiveSet(context.workspaceState),
-        saveSlots: async (slots: SlotRecord) => {
-            const activeSet = getActiveSetName(context.workspaceState);
+        getActiveSet: () => getActiveSetName(context.workspaceState),
+        setActiveSet: async (setName: string) => {
+            const normalizedSetName = normalizeSetName(setName);
+            const targetSet = normalizedSetName || DEFAULT_SET_NAME;
 
-            if (activeSet === DEFAULT_SET_NAME) {
+            if (targetSet !== DEFAULT_SET_NAME) {
+                const slotSets = readSlotSets(context.workspaceState);
+                if (!slotSets[targetSet]) {
+                    const updatedSlotSets: Record<string, SlotRecord> = {
+                        ...slotSets,
+                        [targetSet]: {}
+                    };
+                    await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
+                }
+            }
+
+            await context.workspaceState.update(ACTIVE_SET_STATE_KEY, targetSet);
+            onDidSave?.();
+        },
+        getSetNames: () => {
+            const slotSets = readSlotSets(context.workspaceState);
+            return [DEFAULT_SET_NAME, ...Object.keys(slotSets).sort()];
+        },
+        getSlotsForSet: (setName: string) => {
+            const normalizedSetName = normalizeSetName(setName);
+            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+                return readSlotRecord(context.workspaceState.get<unknown>(WORKSPACE_STATE_KEY));
+            }
+
+            const slotSets = readSlotSets(context.workspaceState);
+            return slotSets[normalizedSetName] ?? {};
+        },
+        saveSlotsForSet: async (setName: string, slots: SlotRecord) => {
+            const normalizedSetName = normalizeSetName(setName);
+            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
                 await context.workspaceState.update(WORKSPACE_STATE_KEY, slots);
                 onDidSave?.();
                 return;
@@ -30,10 +65,16 @@ export function createSlotStore(
             const slotSets = readSlotSets(context.workspaceState);
             const updatedSlotSets: Record<string, SlotRecord> = {
                 ...slotSets,
-                [activeSet]: slots
+                [normalizedSetName]: slots
             };
 
             await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
+            onDidSave?.();
+        },
+        getSlots: () => readSlotsForActiveSet(context.workspaceState),
+        saveSlots: async (slots: SlotRecord) => {
+            const activeSet = getActiveSetName(context.workspaceState);
+            await saveSlotsForSet(context.workspaceState, activeSet, slots);
             onDidSave?.();
         }
     };
@@ -52,7 +93,17 @@ function readSlotsForActiveSet(state: vscode.Memento): SlotRecord {
 
 function getActiveSetName(state: vscode.Memento): string {
     const activeSet = state.get<string>(ACTIVE_SET_STATE_KEY, DEFAULT_SET_NAME);
-    return activeSet.trim() ? activeSet : DEFAULT_SET_NAME;
+    const normalizedSetName = normalizeSetName(activeSet);
+    if (!normalizedSetName) {
+        return DEFAULT_SET_NAME;
+    }
+
+    if (normalizedSetName === DEFAULT_SET_NAME) {
+        return DEFAULT_SET_NAME;
+    }
+
+    const slotSets = readSlotSets(state);
+    return slotSets[normalizedSetName] ? normalizedSetName : DEFAULT_SET_NAME;
 }
 
 function readSlotSets(state: vscode.Memento): Record<string, SlotRecord> {
@@ -118,4 +169,28 @@ function parseSlotBinding(slotKey: string, value: unknown): SlotRecord[string] |
         character: binding.character as number,
         mode: mode as 'auto' | 'static' | undefined
     };
+}
+
+function normalizeSetName(setName: string): string {
+    return setName.trim();
+}
+
+async function saveSlotsForSet(
+    state: vscode.Memento,
+    setName: string,
+    slots: SlotRecord
+): Promise<void> {
+    const normalizedSetName = normalizeSetName(setName);
+    if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+        await state.update(WORKSPACE_STATE_KEY, slots);
+        return;
+    }
+
+    const slotSets = readSlotSets(state);
+    const updatedSlotSets: Record<string, SlotRecord> = {
+        ...slotSets,
+        [normalizedSetName]: slots
+    };
+
+    await state.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
 }

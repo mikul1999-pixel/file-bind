@@ -1,22 +1,14 @@
 import * as vscode from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import type { SlotStore } from '../services/slotStore';
+import {
+    DEFAULT_SET_NAME,
+    SET_FILE_NAME,
+    isValidSetName,
+    parseConfigPath
+} from '../services/slotSetRules';
 import { parseSlotRecord } from '../services/slotValidation';
 import type { SlotRecord } from '../types/slots';
-
-const ROOT_PATH = '/';
-const ROOT_SLOTS_PATH = '/slots.json';
-const SETS_PATH = '/sets';
-const SET_FILE_NAME = 'slots.json';
-const DEFAULT_SET_NAME = 'default';
-
-type ConfigPathType =
-    | { kind: 'root' }
-    | { kind: 'rootSlots' }
-    | { kind: 'sets' }
-    | { kind: 'setDir'; setName: string }
-    | { kind: 'setSlots'; setName: string }
-    | { kind: 'unknown' };
 
 export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     private readonly onDidChangeFileEmitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
@@ -29,7 +21,7 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     stat(uri: vscode.Uri): vscode.FileStat {
-        const pathType = parsePath(uri.path);
+        const pathType = parseConfigPath(uri.path);
 
         if (pathType.kind === 'rootSlots' || pathType.kind === 'setSlots') {
             const exists = pathType.kind === 'rootSlots'
@@ -74,7 +66,7 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
-        const pathType = parsePath(uri.path);
+        const pathType = parseConfigPath(uri.path);
 
         if (pathType.kind === 'root') {
             return [
@@ -102,12 +94,16 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     createDirectory(uri: vscode.Uri): void {
-        const pathType = parsePath(uri.path);
+        const pathType = parseConfigPath(uri.path);
         if (pathType.kind === 'sets') {
             return;
         }
 
         if (pathType.kind === 'setDir' && pathType.setName !== DEFAULT_SET_NAME) {
+            if (!isValidSetName(pathType.setName)) {
+                throw vscode.FileSystemError.NoPermissions();
+            }
+
             if (this.slotStore.getSetNames().includes(pathType.setName)) {
                 return;
             }
@@ -122,7 +118,7 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     }
 
     readFile(uri: vscode.Uri): Uint8Array {
-        const pathType = parsePath(uri.path);
+        const pathType = parseConfigPath(uri.path);
         if (pathType.kind === 'unknown') {
             throw vscode.FileSystemError.FileNotFound();
         }
@@ -147,12 +143,16 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
 
     async writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean; }): Promise<void> {
         // Virtual config write + validation
-        const pathType = parsePath(uri.path);
+        const pathType = parseConfigPath(uri.path);
         if (pathType.kind !== 'rootSlots' && pathType.kind !== 'setSlots') {
             throw vscode.FileSystemError.NoPermissions();
         }
 
         if (pathType.kind === 'setSlots' && pathType.setName === DEFAULT_SET_NAME) {
+            throw vscode.FileSystemError.NoPermissions();
+        }
+
+        if (pathType.kind === 'setSlots' && !isValidSetName(pathType.setName)) {
             throw vscode.FileSystemError.NoPermissions();
         }
 
@@ -193,30 +193,4 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     refresh(uri: vscode.Uri): void {
         this.onDidChangeFileEmitter.fire([{ type: vscode.FileChangeType.Changed, uri }]);
     }
-}
-
-function parsePath(path: string): ConfigPathType {
-    if (path === ROOT_PATH) {
-        return { kind: 'root' };
-    }
-
-    if (path === ROOT_SLOTS_PATH) {
-        return { kind: 'rootSlots' };
-    }
-
-    if (path === SETS_PATH) {
-        return { kind: 'sets' };
-    }
-
-    const setDirMatch = /^\/sets\/([^/]+)$/.exec(path);
-    if (setDirMatch) {
-        return { kind: 'setDir', setName: setDirMatch[1] };
-    }
-
-    const setSlotsMatch = /^\/sets\/([^/]+)\/slots\.json$/.exec(path);
-    if (setSlotsMatch) {
-        return { kind: 'setSlots', setName: setSlotsMatch[1] };
-    }
-
-    return { kind: 'unknown' };
 }

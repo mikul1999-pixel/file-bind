@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CONFIG_URI } from '../config/constants';
+import { DEFAULT_SET_NAME, getSetSlotsUri } from '../services/slotSetRules';
 
 export function registerConfigCommands(context: vscode.ExtensionContext): void {
     // Open keybindings search
@@ -15,7 +15,7 @@ export function registerConfigCommands(context: vscode.ExtensionContext): void {
     // Open editable virtual slots config
     context.subscriptions.push(
         vscode.commands.registerCommand('file-bind.openConfig', async () => {
-            const uri = vscode.Uri.parse(CONFIG_URI);
+            const uri = getSetSlotsUri(DEFAULT_SET_NAME);
             const doc = await vscode.workspace.openTextDocument(uri);
             await vscode.window.showTextDocument(doc);
         })

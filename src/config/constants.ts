@@ -1,7 +1,6 @@
 // Core constants
 export const MAX_SLOT_COUNT = 9;
 export const WORKSPACE_STATE_KEY = 'slots';
-export const CONFIG_URI = 'file-bind-config:/slots.json';
 
 // Icon ids
 export const STATUS_ICONS = {

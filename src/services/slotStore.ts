@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import { WORKSPACE_STATE_KEY } from '../config/constants';
 import type { SlotRecord } from '../types/slots';
+import {
+    assertValidSetName,
+    DEFAULT_SET_NAME,
+    isValidSetName,
+    normalizeSetName
+} from './slotSetRules';
 
-const DEFAULT_SET_NAME = 'default';
 const ACTIVE_SET_STATE_KEY = 'activeSet';
 const SLOT_SETS_STATE_KEY = 'slotSets';
 
@@ -29,6 +34,9 @@ export function createSlotStore(
         setActiveSet: async (setName: string) => {
             const normalizedSetName = normalizeSetName(setName);
             const targetSet = normalizedSetName || DEFAULT_SET_NAME;
+            if (!isValidSetName(targetSet, { allowDefault: true })) {
+                throw new Error('Invalid set name');
+            }
 
             if (targetSet !== DEFAULT_SET_NAME) {
                 const slotSets = readSlotSets(context.workspaceState);
@@ -59,7 +67,12 @@ export function createSlotStore(
         },
         saveSlotsForSet: async (setName: string, slots: SlotRecord) => {
             const normalizedSetName = normalizeSetName(setName);
-            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+            const targetSet = normalizedSetName || DEFAULT_SET_NAME;
+            if (!isValidSetName(targetSet, { allowDefault: true })) {
+                throw new Error('Invalid set name');
+            }
+
+            if (targetSet === DEFAULT_SET_NAME) {
                 await context.workspaceState.update(WORKSPACE_STATE_KEY, slots);
                 onDidSave?.();
                 return;
@@ -68,17 +81,14 @@ export function createSlotStore(
             const slotSets = readSlotSets(context.workspaceState);
             const updatedSlotSets: Record<string, SlotRecord> = {
                 ...slotSets,
-                [normalizedSetName]: slots
+                [targetSet]: slots
             };
 
             await context.workspaceState.update(SLOT_SETS_STATE_KEY, updatedSlotSets);
             onDidSave?.();
         },
         createSet: async (setName: string, sourceSetName?: string) => {
-            const normalizedSetName = normalizeSetName(setName);
-            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
-                throw new Error('Invalid set name');
-            }
+            const normalizedSetName = assertValidSetName(setName);
 
             const slotSets = readSlotSets(context.workspaceState);
             if (slotSets[normalizedSetName]) {
@@ -99,16 +109,8 @@ export function createSlotStore(
             onDidSave?.();
         },
         renameSet: async (setName: string, nextSetName: string) => {
-            const normalizedSetName = normalizeSetName(setName);
-            const normalizedNextSetName = normalizeSetName(nextSetName);
-
-            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
-                throw new Error('Cannot rename default set');
-            }
-
-            if (!normalizedNextSetName || normalizedNextSetName === DEFAULT_SET_NAME) {
-                throw new Error('Invalid new set name');
-            }
+            const normalizedSetName = assertValidSetName(setName);
+            const normalizedNextSetName = assertValidSetName(nextSetName);
 
             if (normalizedSetName === normalizedNextSetName) {
                 return;
@@ -139,8 +141,12 @@ export function createSlotStore(
         },
         deleteSet: async (setName: string) => {
             const normalizedSetName = normalizeSetName(setName);
-            if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+            if (normalizedSetName === DEFAULT_SET_NAME) {
                 throw new Error('Cannot delete default set');
+            }
+
+            if (!isValidSetName(normalizedSetName)) {
+                throw new Error('Invalid set name');
             }
 
             const slotSets = readSlotSets(context.workspaceState);
@@ -200,12 +206,17 @@ function readSlotSets(state: vscode.Memento): Record<string, SlotRecord> {
 
     const slotSets: Record<string, SlotRecord> = {};
     for (const [setName, slots] of Object.entries(raw as Record<string, unknown>)) {
-        if (!setName || setName === DEFAULT_SET_NAME) {
+        const normalizedSetName = normalizeSetName(setName);
+        if (!isValidSetName(normalizedSetName) || normalizedSetName === DEFAULT_SET_NAME) {
+            continue;
+        }
+
+        if (slotSets[normalizedSetName]) {
             continue;
         }
 
         const slotRecord = readSlotRecord(slots);
-        slotSets[setName] = slotRecord;
+        slotSets[normalizedSetName] = slotRecord;
     }
 
     return slotSets;
@@ -257,17 +268,17 @@ function parseSlotBinding(slotKey: string, value: unknown): SlotRecord[string] |
     };
 }
 
-function normalizeSetName(setName: string): string {
-    return setName.trim();
-}
-
 async function saveSlotsForSet(
     state: vscode.Memento,
     setName: string,
     slots: SlotRecord
 ): Promise<void> {
     const normalizedSetName = normalizeSetName(setName);
-    if (!normalizedSetName || normalizedSetName === DEFAULT_SET_NAME) {
+    if (!isValidSetName(normalizedSetName, { allowDefault: true })) {
+        throw new Error('Invalid set name');
+    }
+
+    if (normalizedSetName === DEFAULT_SET_NAME) {
         await state.update(WORKSPACE_STATE_KEY, slots);
         return;
     }

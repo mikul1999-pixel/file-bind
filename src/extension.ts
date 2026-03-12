@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { CONFIG_URI } from './config/constants';
 import { registerConfigCommands } from './commands/configCommands';
 import { registerCycleCommands } from './commands/cycleCommands';
 import { registerJumpPreviousCommand } from './commands/jumpPreviousCommand';
@@ -11,6 +10,7 @@ import { EditorTracker } from './services/editorTracker';
 import { registerFileWatchers } from './services/fileSync';
 import { SlotCycleTracker } from './services/slotCycleTracker';
 import { createSlotStore, type SlotStore } from './services/slotStore';
+import { DEFAULT_SET_NAME, getSetSlotsUri } from './services/slotSetRules';
 import { findSlotByPath } from './utils/slots';
 import { getWorkspaceRelativePath } from './utils/workspace';
 import { createStatusBar, updateStatusBarDisplay } from './ui/statusBar';
@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Virtual config + workspace slot store
     let configFs: ConfigFileSystemProvider;
     const slotStore = createSlotStore(context, () => {
-        configFs.refresh(vscode.Uri.parse(CONFIG_URI));
+        configFs.refresh(getSetSlotsUri(DEFAULT_SET_NAME));
     });
 
     configFs = new ConfigFileSystemProvider(slotStore);

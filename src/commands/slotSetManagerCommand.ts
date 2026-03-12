@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import type { SlotStore } from '../services/slotStore';
+import {
+    DEFAULT_SET_NAME,
+    getSetSlotsUri,
+    isSlotSetConfigUri,
+    normalizeSetName,
+    validateSetName
+} from '../services/slotSetRules';
 
-const DEFAULT_SET_NAME = 'default';
-const SET_NAME_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 const DEFAULT_STATUS_MESSAGE = 'ready';
 const STATUS_RESET_DELAY_MS = 2200;
 
@@ -257,12 +262,7 @@ async function handleMessage(
 }
 
 async function openSetFile(setName: string): Promise<void> {
-    const normalized = normalizeSetName(setName);
-    const path = normalized === DEFAULT_SET_NAME
-        ? '/slots.json'
-        : `/sets/${normalized}/slots.json`;
-
-    const uri = vscode.Uri.parse(`file-bind-config:${path}`);
+    const uri = getSetSlotsUri(setName);
     const document = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(document);
 }
@@ -281,16 +281,9 @@ async function promptForSetName(
         ignoreFocusOut: true,
         validateInput: (input) => {
             const normalized = normalizeSetName(input);
-            if (!normalized) {
-                return 'Set name is required';
-            }
-
-            if (normalized === DEFAULT_SET_NAME) {
-                return 'default is reserved';
-            }
-
-            if (!SET_NAME_REGEX.test(normalized)) {
-                return 'Use a slug: lowercase letters, numbers, ., _, -';
+            const validationError = validateSetName(normalized);
+            if (validationError) {
+                return validationError;
             }
 
             if (existing.has(normalized)) {
@@ -308,16 +301,8 @@ async function promptForSetName(
     return normalizeSetName(name);
 }
 
-function normalizeSetName(value: string): string {
-    return value.trim().toLowerCase();
-}
-
 function isSlotSetConfigDocument(uri: vscode.Uri): boolean {
-    if (uri.scheme !== 'file-bind-config') {
-        return false;
-    }
-
-    return uri.path === '/slots.json' || /^\/sets\/[^/]+\/slots\.json$/.test(uri.path);
+    return isSlotSetConfigUri(uri);
 }
 
 function createNonce(): string {

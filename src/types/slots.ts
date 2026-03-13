@@ -9,6 +9,12 @@ export interface SlotBinding {
 
 export type SlotRecord = Record<string, SlotBinding>;
 
+export interface SlotSetsConfig {
+    activeSet: string;
+    default: SlotRecord;
+    sets: Record<string, SlotRecord>;
+}
+
 export interface SlotUpdate {
     slot: string;
     oldName: string;

@@ -2,13 +2,18 @@ import * as vscode from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import type { SlotStore } from '../services/slotStore';
 import {
+    ALL_SETS_CONFIG_PATH,
+    CONFIG_SCHEME,
     DEFAULT_SET_NAME,
+    ROOT_SLOTS_PATH,
+    SETS_PATH,
     SET_FILE_NAME,
+    getSetSlotsPath,
     isValidSetName,
     parseConfigPath
 } from '../services/slotSetRules';
-import { parseSlotRecord } from '../services/slotValidation';
-import type { SlotRecord } from '../types/slots';
+import { parseSlotRecord, parseSlotSetsConfig } from '../services/slotValidation';
+import type { SlotSetsConfig } from '../types/slots';
 
 export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     private readonly onDidChangeFileEmitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
@@ -23,10 +28,10 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     stat(uri: vscode.Uri): vscode.FileStat {
         const pathType = parseConfigPath(uri.path);
 
-        if (pathType.kind === 'rootSlots' || pathType.kind === 'setSlots') {
-            const exists = pathType.kind === 'rootSlots'
-                ? true
-                : pathType.setName !== DEFAULT_SET_NAME && this.slotStore.getSetNames().includes(pathType.setName);
+        if (pathType.kind === 'rootSlots' || pathType.kind === 'allSetsConfig' || pathType.kind === 'setSlots') {
+            const exists = pathType.kind === 'setSlots'
+                ? pathType.setName !== DEFAULT_SET_NAME && this.slotStore.getSetNames().includes(pathType.setName)
+                : true;
             if (!exists) {
                 throw vscode.FileSystemError.FileNotFound();
             }
@@ -68,9 +73,11 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
     readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
         const pathType = parseConfigPath(uri.path);
 
+        // Root contains the default set slots, the overall config, and the sets dir
         if (pathType.kind === 'root') {
             return [
                 [SET_FILE_NAME, vscode.FileType.File],
+                ['config.json', vscode.FileType.File],
                 ['sets', vscode.FileType.Directory]
             ];
         }
@@ -123,28 +130,27 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
             throw vscode.FileSystemError.FileNotFound();
         }
 
-        // Virtual config read
-        let slots: SlotRecord;
+        let json: string;
         if (pathType.kind === 'rootSlots') {
-            slots = this.slotStore.getSlotsForSet(DEFAULT_SET_NAME);
+            json = JSON.stringify(this.slotStore.getSlotsForSet(DEFAULT_SET_NAME), null, 4);
+        } else if (pathType.kind === 'allSetsConfig') {
+            json = JSON.stringify(this.slotStore.getAllSetsConfig(), null, 4);
         } else if (pathType.kind === 'setSlots') {
             if (pathType.setName === DEFAULT_SET_NAME || !this.slotStore.getSetNames().includes(pathType.setName)) {
                 throw vscode.FileSystemError.FileNotFound();
             }
 
-            slots = this.slotStore.getSlotsForSet(pathType.setName);
+            json = JSON.stringify(this.slotStore.getSlotsForSet(pathType.setName), null, 4);
         } else {
             throw vscode.FileSystemError.FileNotFound();
         }
 
-        const json = JSON.stringify(slots, null, 4);
         return new TextEncoder().encode(json);
     }
 
     async writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean; }): Promise<void> {
-        // Virtual config write + validation
         const pathType = parseConfigPath(uri.path);
-        if (pathType.kind !== 'rootSlots' && pathType.kind !== 'setSlots') {
+        if (pathType.kind !== 'rootSlots' && pathType.kind !== 'setSlots' && pathType.kind !== 'allSetsConfig') {
             throw vscode.FileSystemError.NoPermissions();
         }
 
@@ -156,15 +162,20 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
             throw vscode.FileSystemError.NoPermissions();
         }
 
-        let slots: SlotRecord;
-        try {
-            const json = new TextDecoder().decode(content);
-            slots = parseSlotRecord(json);
-        } catch {
-            throw vscode.FileSystemError.Unavailable('Invalid JSON');
-        }
+        const previousConfig = this.slotStore.getAllSetsConfig();
 
         try {
+            const json = new TextDecoder().decode(content);
+
+            if (pathType.kind === 'allSetsConfig') {
+                const config = parseSlotSetsConfig(json);
+                await this.slotStore.replaceAllSetsConfig(config);
+                this.refreshAllConfigUris(previousConfig, config);
+                return;
+            }
+
+            const slots = parseSlotRecord(json);
+
             if (pathType.kind === 'rootSlots') {
                 await this.slotStore.saveSlotsForSet(DEFAULT_SET_NAME, slots);
             } else {
@@ -177,8 +188,13 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
             }
 
             this.refresh(uri);
-        } catch {
-            throw vscode.FileSystemError.Unavailable('Could not write slots');
+        } catch (error) {
+            if (error instanceof vscode.FileSystemError) {
+                throw error;
+            }
+
+            const reason = error instanceof Error ? error.message : 'Could not write config';
+            throw vscode.FileSystemError.Unavailable(reason);
         }
     }
 
@@ -192,5 +208,23 @@ export class ConfigFileSystemProvider implements vscode.FileSystemProvider {
 
     refresh(uri: vscode.Uri): void {
         this.onDidChangeFileEmitter.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+    }
+
+    // Refresh all sets when the overall config changes
+    private refreshAllConfigUris(previousConfig: SlotSetsConfig, nextConfig: SlotSetsConfig): void {
+        const paths = new Set<string>([
+            ROOT_SLOTS_PATH,
+            ALL_SETS_CONFIG_PATH,
+            SETS_PATH,
+            ...Object.keys(previousConfig.sets).map((setName) => getSetSlotsPath(setName)),
+            ...Object.keys(nextConfig.sets).map((setName) => getSetSlotsPath(setName))
+        ]);
+
+        const events: vscode.FileChangeEvent[] = Array.from(paths).map((path) => ({
+            type: vscode.FileChangeType.Changed,
+            uri: vscode.Uri.parse(`${CONFIG_SCHEME}:${path}`)
+        }));
+
+        this.onDidChangeFileEmitter.fire(events);
     }
 }

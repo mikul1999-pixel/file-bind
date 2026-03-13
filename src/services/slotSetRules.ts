@@ -5,6 +5,7 @@ const SET_NAME_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 
 export const CONFIG_SCHEME = 'file-bind-config';
 export const ROOT_SLOTS_PATH = '/slots.json';
+export const ALL_SETS_CONFIG_PATH = '/config.json';
 export const SETS_PATH = '/sets';
 export const SET_FILE_NAME = 'slots.json';
 
@@ -15,6 +16,7 @@ interface SetNameValidationOptions {
 export type ConfigPathType =
     | { kind: 'root' }
     | { kind: 'rootSlots' }
+    | { kind: 'allSetsConfig' }
     | { kind: 'sets' }
     | { kind: 'setDir'; setName: string }
     | { kind: 'setSlots'; setName: string }
@@ -83,6 +85,14 @@ export function getSetSlotsUri(setName: string): vscode.Uri {
     return vscode.Uri.parse(`${CONFIG_SCHEME}:${getSetSlotsPath(setName)}`);
 }
 
+export function getAllSetsConfigUri(): vscode.Uri {
+    return vscode.Uri.parse(`${CONFIG_SCHEME}:${ALL_SETS_CONFIG_PATH}`);
+}
+
+export function getSetsDirectoryUri(): vscode.Uri {
+    return vscode.Uri.parse(`${CONFIG_SCHEME}:${SETS_PATH}`);
+}
+
 export function parseConfigPath(path: string): ConfigPathType {
     if (path === '/') {
         return { kind: 'root' };
@@ -90,6 +100,10 @@ export function parseConfigPath(path: string): ConfigPathType {
 
     if (path === ROOT_SLOTS_PATH) {
         return { kind: 'rootSlots' };
+    }
+
+    if (path === ALL_SETS_CONFIG_PATH) {
+        return { kind: 'allSetsConfig' };
     }
 
     if (path === SETS_PATH) {
@@ -121,7 +135,7 @@ export function parseConfigPath(path: string): ConfigPathType {
 
 export function isSlotSetConfigPath(path: string): boolean {
     const parsed = parseConfigPath(path);
-    return parsed.kind === 'rootSlots' || parsed.kind === 'setSlots';
+    return parsed.kind === 'rootSlots' || parsed.kind === 'setSlots' || parsed.kind === 'allSetsConfig';
 }
 
 export function isSlotSetConfigUri(uri: vscode.Uri): boolean {

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { SlotStore } from '../services/slotStore';
 import {
     DEFAULT_SET_NAME,
+    getAllSetsConfigUri,
     getSetSlotsUri,
     isSlotSetConfigUri,
     normalizeSetName,
@@ -12,7 +13,7 @@ const DEFAULT_STATUS_MESSAGE = 'ready';
 const STATUS_RESET_DELAY_MS = 2200;
 
 interface SlotSetManagerMessage {
-    type: 'ready' | 'selectSet' | 'openSetFile' | 'switchSet' | 'createSet' | 'renameSet' | 'deleteSet' | 'closePanel';
+    type: 'ready' | 'selectSet' | 'openSetFile' | 'openAllConfig' | 'switchSet' | 'createSet' | 'renameSet' | 'deleteSet' | 'closePanel';
     setName?: string;
 }
 
@@ -195,6 +196,11 @@ async function handleMessage(
         return `opened ${targetSet}`;
     }
 
+    if (message.type === 'openAllConfig') {
+        await openAllSetsConfig();
+        return 'opened /config.json';
+    }
+
     if (message.type === 'switchSet') {
         if (!slotStore.getSetNames().includes(targetSet)) {
             return 'set not found';
@@ -263,6 +269,12 @@ async function handleMessage(
 
 async function openSetFile(setName: string): Promise<void> {
     const uri = getSetSlotsUri(setName);
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(document);
+}
+
+async function openAllSetsConfig(): Promise<void> {
+    const uri = getAllSetsConfigUri();
     const document = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(document);
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { WORKSPACE_STATE_KEY } from '../config/constants';
-import type { SlotRecord } from '../types/slots';
+import type { SlotRecord, SlotSetsConfig } from '../types/slots';
 import {
     assertValidSetName,
     DEFAULT_SET_NAME,
@@ -21,6 +21,8 @@ export interface SlotStore {
     createSet: (setName: string, sourceSetName?: string) => Promise<void>;
     renameSet: (setName: string, nextSetName: string) => Promise<void>;
     deleteSet: (setName: string) => Promise<void>;
+    getAllSetsConfig: () => SlotSetsConfig;
+    replaceAllSetsConfig: (config: SlotSetsConfig) => Promise<void>;
     getSlots: () => SlotRecord;
     saveSlots: (slots: SlotRecord) => Promise<void>;
 }
@@ -161,6 +163,29 @@ export function createSlotStore(
                 await context.workspaceState.update(ACTIVE_SET_STATE_KEY, DEFAULT_SET_NAME);
             }
 
+            onDidSave?.();
+        },
+        getAllSetsConfig: () => ({
+            activeSet: getActiveSetName(context.workspaceState),
+            default: readSlotRecord(context.workspaceState.get<unknown>(WORKSPACE_STATE_KEY)),
+            sets: readSlotSets(context.workspaceState)
+        }),
+        replaceAllSetsConfig: async (config: SlotSetsConfig) => {
+            const normalizedActiveSet = normalizeSetName(config.activeSet);
+            const slotSets: Record<string, SlotRecord> = {};
+
+            for (const [setName, slots] of Object.entries(config.sets)) {
+                const normalizedSetName = assertValidSetName(setName);
+                slotSets[normalizedSetName] = slots;
+            }
+
+            const activeSet = normalizedActiveSet === DEFAULT_SET_NAME || slotSets[normalizedActiveSet]
+                ? normalizedActiveSet
+                : DEFAULT_SET_NAME;
+
+            await context.workspaceState.update(WORKSPACE_STATE_KEY, config.default);
+            await context.workspaceState.update(SLOT_SETS_STATE_KEY, slotSets);
+            await context.workspaceState.update(ACTIVE_SET_STATE_KEY, activeSet);
             onDidSave?.();
         },
         getSlots: () => readSlotsForActiveSet(context.workspaceState),

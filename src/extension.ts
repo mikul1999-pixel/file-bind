@@ -10,7 +10,12 @@ import { EditorTracker } from './services/editorTracker';
 import { registerFileWatchers } from './services/fileSync';
 import { SlotCycleTracker } from './services/slotCycleTracker';
 import { createSlotStore, type SlotStore } from './services/slotStore';
-import { DEFAULT_SET_NAME, getSetSlotsUri } from './services/slotSetRules';
+import {
+    DEFAULT_SET_NAME,
+    getAllSetsConfigUri,
+    getSetSlotsUri,
+    getSetsDirectoryUri
+} from './services/slotSetRules';
 import { findSlotByPath } from './utils/slots';
 import { getWorkspaceRelativePath } from './utils/workspace';
 import { createStatusBar, updateStatusBarDisplay } from './ui/statusBar';
@@ -22,6 +27,15 @@ export function activate(context: vscode.ExtensionContext): void {
     let configFs: ConfigFileSystemProvider;
     const slotStore = createSlotStore(context, () => {
         configFs.refresh(getSetSlotsUri(DEFAULT_SET_NAME));
+        configFs.refresh(getAllSetsConfigUri());
+        configFs.refresh(getSetsDirectoryUri());
+        for (const setName of slotStore.getSetNames()) {
+            if (setName === DEFAULT_SET_NAME) {
+                continue;
+            }
+
+            configFs.refresh(getSetSlotsUri(setName));
+        }
     });
 
     configFs = new ConfigFileSystemProvider(slotStore);

@@ -69,6 +69,7 @@ function renderHelpLine() {
         ['a', 'add'],
         ['r', 'rename'],
         ['d', 'delete'],
+        ['e', 'edit-all'],
         ['esc', hasActiveFilter() ? 'clear' : 'close']
     ];
 
@@ -362,6 +363,13 @@ document.addEventListener('keydown', (event) => {
         event.preventDefault();
         setPendingG(false);
         post('switchSet', state.selectedSet);
+        return;
+    }
+
+    if (event.key === 'e') {
+        event.preventDefault();
+        setPendingG(false);
+        post('openAllConfig');
         return;
     }
 

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomBytes } from 'crypto';
 import type { SlotStore } from '../services/slotStore';
 import {
     DEFAULT_SET_NAME,
@@ -318,11 +319,5 @@ function isSlotSetConfigDocument(uri: vscode.Uri): boolean {
 }
 
 function createNonce(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let nonce = '';
-    for (let i = 0; i < 24; i += 1) {
-        nonce += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    return nonce;
+    return randomBytes(18).toString('base64url');
 }

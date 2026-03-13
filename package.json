@@ -200,9 +200,9 @@
         "file-bind.statusPreviewLimit": {
           "type": "number",
           "default": 3,
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 9,
-          "description": "Number of slots shown in status bar (1-9)"
+          "description": "Number of slots shown in status bar (0-9, set 0 to hide)"
         }
       }
     }

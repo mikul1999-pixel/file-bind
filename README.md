@@ -15,7 +15,7 @@ Intentionally minimal, not many fancy features
 
 ## Extension settings
 - `Slot Count` enables up to 9 slots
-- `Status Preview Limit` limits number of slots shown on bottom status bar
+- `Status Preview Limit` limits number of slots shown on bottom status bar (`0` hides it)
 - You can also edit virtual config files from the status quick pick:
     - `Manage Slot Sets` lets you save your file binds into sets and switch between them
     - `Edit Current Set` opens the active `slots.json`

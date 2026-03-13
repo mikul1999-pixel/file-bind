@@ -12,7 +12,7 @@ export function getSlotCount(): number {
 
 export function getPreviewLimit(): number {
     return Math.min(
-        Math.max(getConfig().get<number>('statusPreviewLimit', 3), 1),
+        Math.max(getConfig().get<number>('statusPreviewLimit', 3), 0),
         getSlotCount()
     );
 }

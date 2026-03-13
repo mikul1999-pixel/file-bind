@@ -43,6 +43,11 @@ export function updateStatusBarDisplay(
     // Render slot preview text
     const slotCount = getSlotCount();
     const previewLimit = getPreviewLimit();
+    if (previewLimit === 0) {
+        statusBarItem.hide();
+        return;
+    }
+
     const activeFilePath = getActiveFilePath();
     statusBarItem.tooltip = buildStatusBarTooltip(activeSet);
 

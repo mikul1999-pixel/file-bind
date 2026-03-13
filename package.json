@@ -26,10 +26,6 @@
         "title": "File Bind: Configure Keybindings"
       },
       {
-        "command": "file-bind.openConfig",
-        "title": "File Bind: Configure Slots"
-      },
-      {
         "command": "file-bind.pinToSlot",
         "title": "File Bind: Pin Current File to Slot"
       },

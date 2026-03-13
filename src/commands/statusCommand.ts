@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { PICK_ACTIONS } from '../config/constants';
+import { getAllSetsConfigUri, getSetSlotsUri } from '../services/slotSetRules';
 import type { SlotStore } from '../services/slotStore';
 import type { QuickPickItemSlot } from '../types/slots';
 import { createQuickPickItems } from '../ui/quickPickItems';
@@ -22,13 +23,31 @@ export function registerShowStatusCommand(
                     return;
                 }
 
-                if (selected.label === '$(gear) Configure Slots') {
-                    void vscode.commands.executeCommand('file-bind.openConfig');
+                const selectedItem = selected as QuickPickItemSlot;
+                if (selectedItem.actionId === 'manageSlotSets') {
+                    void vscode.commands.executeCommand('file-bind.manageSlotSets');
                     quickPick.hide();
                     return;
                 }
 
-                const slotNumber = (selected as QuickPickItemSlot).slotNumber;
+                if (selectedItem.actionId === 'editCurrentSlots') {
+                    const activeSet = slotStore.getActiveSet();
+                    void vscode.workspace.openTextDocument(getSetSlotsUri(activeSet)).then((doc) =>
+                        vscode.window.showTextDocument(doc)
+                    );
+                    quickPick.hide();
+                    return;
+                }
+
+                if (selectedItem.actionId === 'editAllSets') {
+                    void vscode.workspace.openTextDocument(getAllSetsConfigUri()).then((doc) =>
+                        vscode.window.showTextDocument(doc)
+                    );
+                    quickPick.hide();
+                    return;
+                }
+
+                const slotNumber = selectedItem.slotNumber;
                 if (!slotNumber || selected.label.includes('Empty')) {
                     return;
                 }

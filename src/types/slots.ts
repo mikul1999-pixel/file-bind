@@ -21,6 +21,9 @@ export interface SlotUpdate {
     newName: string;
 }
 
+export type QuickPickActionId = 'manageSlotSets' | 'editCurrentSlots' | 'editAllSets';
+
 export interface QuickPickItemSlot extends vscode.QuickPickItem {
     slotNumber?: number;
+    actionId?: QuickPickActionId;
 }

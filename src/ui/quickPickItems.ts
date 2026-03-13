@@ -1,9 +1,33 @@
 import * as vscode from 'vscode';
 import { PICK_ACTIONS, PICK_ICONS } from '../config/constants';
 import { getSlotCount } from '../config/settings';
-import type { QuickPickItemSlot, SlotRecord } from '../types/slots';
+import type { QuickPickActionId, QuickPickItemSlot, SlotRecord } from '../types/slots';
 import { getSlotKey } from '../utils/slots';
 import { getActiveFilePath } from '../utils/workspace';
+
+interface QuickPickActionItem {
+    label: string;
+    description: string;
+    actionId: QuickPickActionId;
+}
+
+export const QUICK_PICK_ACTION_ITEMS: QuickPickActionItem[] = [
+    {
+        label: 'Manage Slot Sets',
+        description: 'Open panel with saved sets',
+        actionId: 'manageSlotSets'
+    },
+    {
+        label: 'Edit Current Set',
+        description: 'Open slots.json',
+        actionId: 'editCurrentSlots'
+    },
+    {
+        label: 'Edit All Sets',
+        description: 'Open config.json',
+        actionId: 'editAllSets'
+    }
+];
 
 function getIconLabel(id: string): string {
     return `$(${id})`;
@@ -58,10 +82,9 @@ export function createQuickPickItems(slots: SlotRecord): QuickPickItemSlot[] {
         kind: vscode.QuickPickItemKind.Separator
     });
 
-    items.push({
-        label: '$(gear) Configure Slots',
-        description: 'Open slots.json config file'
-    });
+    for (const actionItem of QUICK_PICK_ACTION_ITEMS) {
+        items.push(actionItem);
+    }
 
     return items;
 }

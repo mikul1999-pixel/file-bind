@@ -176,6 +176,18 @@ pre {
     color: var(--vscode-terminal-ansiGreen);
 }
 
+.status-mode.mode-nav {
+    color: var(--vscode-terminal-ansiGreen);
+}
+
+.status-mode.mode-filter {
+    color: var(--vscode-terminal-ansiYellow);
+}
+
+.status-mode.mode-nav-filtered {
+    color: var(--vscode-terminal-ansiCyan);
+}
+
 .status-message {
     overflow: hidden;
     text-overflow: ellipsis;

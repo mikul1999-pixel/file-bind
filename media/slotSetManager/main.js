@@ -6,13 +6,14 @@ const previewTitleEl = document.getElementById('preview-title');
 const statusModeEl = document.getElementById('status-mode');
 const statusMessageEl = document.getElementById('status-message');
 const promptMetaEl = document.getElementById('prompt-meta');
+const helpLineEl = document.getElementById('helpline');
 
 // pending g is used to handle gg and G keybinds for jump first/last
 let pendingG = false;
 let pendingGTimer;
 
-// Search state is kept local in the webview. simple filter
-let searchActive = false;
+// Filter state is local to webview
+let filterEditMode = false;
 let searchQuery = '';
 let lastSelectedSet = 'default';
 
@@ -46,12 +47,43 @@ function setPendingG(value) {
 
 function getVisibleSets() {
     // Basic search. case insensitive substring filter
-    if (!searchActive || searchQuery.length === 0) {
+    if (searchQuery.length === 0) {
         return state.sets;
     }
 
     const query = searchQuery.toLowerCase();
     return state.sets.filter((setName) => setName.toLowerCase().includes(query));
+}
+
+function hasActiveFilter() {
+    return searchQuery.length > 0;
+}
+
+function renderHelpLine() {
+    const navHelp = [
+        ['/', 'search'],
+        ['j/k', 'up/down'],
+        ['gg/G', 'first/last'],
+        ['l/->/space', 'open'],
+        ['s', 'switch'],
+        ['a', 'add'],
+        ['r', 'rename'],
+        ['d', 'delete'],
+        ['esc', hasActiveFilter() ? 'clear' : 'close']
+    ];
+
+    const filterHelp = [
+        ['type', 'filter'],
+        ['backspace', 'erase'],
+        ['j/k', 'up/down'],
+        ['enter', 'nav'],
+        ['esc', 'clear+nav']
+    ];
+
+    const help = filterEditMode ? filterHelp : navHelp;
+    helpLineEl.innerHTML = help
+        .map(([key, value]) => `<span class="help-key">${key}</span> <span class="help-value">${value}</span>`)
+        .join('');
 }
 
 function ensureSelectedInVisible(visibleSets) {
@@ -122,15 +154,22 @@ function render() {
     previewTitleEl.textContent = previewSet === 'default' ? '/slots.json' : `/sets/${previewSet}/slots.json`;
     previewEl.innerHTML = renderJson(state.previewJson);
 
-    if (searchActive) {
-        statusModeEl.textContent = 'SEARCH';
+    if (filterEditMode) {
+        statusModeEl.textContent = 'FILTER';
+        statusModeEl.className = 'status-mode mode-filter';
         promptMetaEl.textContent = `/${searchQuery}  (${visibleSets.length} match${visibleSets.length === 1 ? '' : 'es'})`;
+    } else if (hasActiveFilter()) {
+        statusModeEl.textContent = 'NAV:FILTERED';
+        statusModeEl.className = 'status-mode mode-nav-filtered';
+        promptMetaEl.textContent = `filter /${searchQuery} (${visibleSets.length} match${visibleSets.length === 1 ? '' : 'es'}) | selected ${state.selectedSet} | active ${state.activeSet}`;
     } else {
         statusModeEl.textContent = 'NAV';
+        statusModeEl.className = 'status-mode mode-nav';
         promptMetaEl.textContent = `selected ${state.selectedSet} | active ${state.activeSet}`;
     }
 
     statusMessageEl.textContent = state.statusMessage;
+    renderHelpLine();
 }
 
 function renderJson(text) {
@@ -242,11 +281,11 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    if (searchActive) {
+    if (filterEditMode) {
         if (event.key === 'Escape') {
             event.preventDefault();
             setPendingG(false);
-            searchActive = false;
+            filterEditMode = false;
             updateSearch('');
             return;
         }
@@ -254,7 +293,7 @@ document.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             setPendingG(false);
-            searchActive = false;
+            filterEditMode = false;
             render();
             return;
         }
@@ -286,13 +325,15 @@ document.addEventListener('keydown', (event) => {
             updateSearch(searchQuery + event.key);
             return;
         }
+
+        return;
     }
 
     if (event.key === '/') {
         event.preventDefault();
         setPendingG(false);
-        searchActive = true;
-        updateSearch('');
+        filterEditMode = true;
+        render();
         return;
     }
 
@@ -310,7 +351,7 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    if (event.key === 'Enter' || event.key === 'l' || event.key === 'ArrowRight' || event.key === ' ') {
+    if (event.key === 'l' || event.key === 'ArrowRight' || event.key === ' ') {
         event.preventDefault();
         setPendingG(false);
         post('openSetFile', state.selectedSet);
@@ -367,6 +408,11 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         event.preventDefault();
         setPendingG(false);
+        if (hasActiveFilter()) {
+            updateSearch('');
+            return;
+        }
+
         post('closePanel');
     }
 });

@@ -47,4 +47,5 @@ Example `slots.json`
 - `File Bind: Cycle Slots Backward` -> `Alt+[` Go to previous slot numerically, 9-1
 - `File Bind: Configure Keybindings` -> Customize keybindings to replace `Alt+1/2/3` ...
 - `File Bind: Show Bound Files` -> Show dropdown panel with bound slots/files (click status bar)
+- `File Bind: Open Full Config` -> Opens slot/set config file, config.json
 - `File Bind: Clear Slot` -> Delete the bind setting for a given slot

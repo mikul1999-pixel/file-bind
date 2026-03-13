@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Status bar
     const statusBarItem = createStatusBar(context);
     const updateStatusBar = (): void => {
-        updateStatusBarDisplay(statusBarItem, slotStore.getSlots());
+        updateStatusBarDisplay(statusBarItem, slotStore.getSlots(), slotStore.getActiveSet());
     };
 
     context.subscriptions.push(configFs.onDidChangeFile(() => updateStatusBar()));

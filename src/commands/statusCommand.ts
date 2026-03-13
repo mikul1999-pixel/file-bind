@@ -13,7 +13,8 @@ export function registerShowStatusCommand(
         vscode.commands.registerCommand('file-bind.showStatus', async () => {
             // Show slot bindings in quick pick
             const quickPick = vscode.window.createQuickPick();
-            quickPick.title = 'Current File Bindings';
+            const activeSet = slotStore.getActiveSet();
+            quickPick.title = 'Current File Bindings' + (activeSet ? ` [${activeSet}]` : '');
             quickPick.placeholder = 'Select a slot to jump, or use buttons to manage';
             quickPick.items = createQuickPickItems(slotStore.getSlots());
 
@@ -31,7 +32,6 @@ export function registerShowStatusCommand(
                 }
 
                 if (selectedItem.actionId === 'editCurrentSlots') {
-                    const activeSet = slotStore.getActiveSet();
                     void vscode.workspace.openTextDocument(getSetSlotsUri(activeSet)).then((doc) =>
                         vscode.window.showTextDocument(doc)
                     );

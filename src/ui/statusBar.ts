@@ -15,16 +15,36 @@ export function createStatusBar(context: vscode.ExtensionContext): vscode.Status
         100
     );
     statusBarItem.command = 'file-bind.showStatus';
-    statusBarItem.tooltip = 'Click to view all file bindings';
+    statusBarItem.tooltip = 'File Bind';
     context.subscriptions.push(statusBarItem);
     return statusBarItem;
 }
 
-export function updateStatusBarDisplay(statusBarItem: vscode.StatusBarItem, slots: SlotRecord): void {
+function buildStatusBarTooltip(activeSet: string): vscode.MarkdownString {
+    const fileBindSettingsArg = encodeURIComponent('"@ext:mikul.file-bind"');
+    const markdown = new vscode.MarkdownString();
+    markdown.isTrusted = true;
+    markdown.supportThemeIcons = true;
+    markdown.appendMarkdown(`**File Bind** \`${activeSet}\`\n\n`);
+    markdown.appendMarkdown('*Click to view bindings and jump between slots*\n\n');
+    markdown.appendMarkdown(
+        '[Open config.json](command:file-bind.openAllSetsConfig) • ' +
+        '[Manage Sets](command:file-bind.manageSlotSets) • ' +
+        `[$(gear) Settings](command:workbench.action.openSettings?${fileBindSettingsArg})`
+    );
+    return markdown;
+}
+
+export function updateStatusBarDisplay(
+    statusBarItem: vscode.StatusBarItem,
+    slots: SlotRecord,
+    activeSet: string
+): void {
     // Render slot preview text
     const slotCount = getSlotCount();
     const previewLimit = getPreviewLimit();
     const activeFilePath = getActiveFilePath();
+    statusBarItem.tooltip = buildStatusBarTooltip(activeSet);
 
     const slotTexts = Array.from({ length: slotCount }, (_, i) => {
         const slotNumber = i + 1;

@@ -2,9 +2,8 @@
 
 vscode extension for project-specific keybinds. Switch between the same 2-3 files in the cwd without fuzzy finding, scrolling through recents, clicking, etc.
 
-> [!WARNING]
->
-> This extension is a personal project, so ongoing support may not be provided
+## Disclaimer
+*This extension is a personal project, so ongoing support may not be provided*
 
 ## Usage
 Intentionally minimal, not many fancy features
@@ -15,13 +14,17 @@ Intentionally minimal, not many fancy features
     - ```Alt+1``` to teleport
 
 ## Extension settings
-- "Slot Count" enable up to 9 slots
-- "Status Preview Limit" limit number of slots shown on bottom status bar
-- ```command palette -> "File Bind: Configure Slots"``` 
-    - manually edit slots. or copy/paste bindings
-    - set "mode". setting to save a specific line number or teleport to where you left off
+- `Slot Count` enables up to 9 slots
+- `Status Preview Limit` limits number of slots shown on bottom status bar
+- You can also edit virtual config files from the status quick pick:
+    - `Manage Slot Sets` lets you save your file binds into sets and switch between them
+    - `Edit Current Set` opens the active `slots.json`
+    - `Edit All Sets` opens `config.json` to edit every saved binding in one place
+    - set `mode` to save a specific line number or teleport to where you left off
 
-```bash
+
+Example `slots.json`
+```json
 {
     "1": {
         "filePath": "package.json",
@@ -39,6 +42,9 @@ Intentionally minimal, not many fancy features
 ```
 
 ## Other commands
-- "File Bind: Configure Keybindings" --> Customize Keybindings to replace ```Alt+1/2/3```
-- "File Bind: Show Bound Files" --> Show dropdown panel with bound slots & files (can trigger by clicking on status bar)
-- "File Bind: Clear Slot 1/2/3" --> Delete the bind setting for a given slot
+- `File Bind: Jump to Previous File` -> `Alt+Q` Go to last file and cursor position
+- `File Bind: Cycle Slots Forward` -> `Alt+]` Go to next slot numerically, 1-9
+- `File Bind: Cycle Slots Backward` -> `Alt+[` Go to previous slot numerically, 9-1
+- `File Bind: Configure Keybindings` -> Customize keybindings to replace `Alt+1/2/3` ...
+- `File Bind: Show Bound Files` -> Show dropdown panel with bound slots/files (click status bar)
+- `File Bind: Clear Slot` -> Delete the bind setting for a given slot

@@ -1,0 +1,214 @@
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+}
+
+.promptbar {
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 7px 10px;
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prompt-label {
+    color: var(--vscode-terminal-ansiCyan);
+}
+
+.prompt-value {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.95;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: 0;
+}
+
+.left {
+    border-right: 1px solid var(--vscode-panel-border);
+    min-height: 0;
+}
+
+.title {
+    padding: 6px 10px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.set-list {
+    margin: 0;
+    padding: 4px 6px;
+    list-style: none;
+    overflow: auto;
+    min-height: 0;
+    font-size: var(--vscode-editor-font-size, 12px);
+    line-height: 1.55;
+}
+
+.set-item {
+    padding: 1px 6px;
+    border-radius: 0;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 12px 14px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    border: 1px solid transparent;
+    color: var(--vscode-descriptionForeground);
+    transition: color 80ms linear, background 80ms linear;
+}
+
+.set-item:hover {
+    color: var(--vscode-foreground);
+}
+
+.set-item.selected {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+    border-left-color: var(--vscode-terminal-ansiCyan);
+}
+
+.set-item-marker {
+    opacity: 0.55;
+    text-align: center;
+}
+
+.set-item.selected .set-item-marker.select {
+    color: var(--vscode-terminal-ansiCyan);
+    opacity: 1;
+}
+
+.set-item-marker.active {
+    color: var(--vscode-terminal-ansiGreen);
+    opacity: 0.9;
+}
+
+.set-item-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.set-item-tag {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
+}
+
+.set-item-empty {
+    padding: 1px 6px;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.7;
+}
+
+.right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.preview-title {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+pre {
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    min-height: 0;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: var(--vscode-editor-font-size, 12px);
+    line-height: 1.5;
+}
+
+.json-key {
+    color: var(--vscode-terminal-ansiCyan);
+}
+
+.json-string {
+    color: var(--vscode-terminal-ansiGreen);
+}
+
+.json-number {
+    color: var(--vscode-terminal-ansiMagenta);
+}
+
+.json-boolean {
+    color: var(--vscode-terminal-ansiBlue);
+}
+
+.json-null {
+    color: var(--vscode-terminal-ansiRed);
+}
+
+.statusline {
+    border-top: 1px solid var(--vscode-panel-border);
+    padding: 6px 10px;
+    font-size: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.status-mode {
+    color: var(--vscode-terminal-ansiGreen);
+}
+
+.status-mode.mode-nav {
+    color: var(--vscode-terminal-ansiGreen);
+}
+
+.status-mode.mode-filter {
+    color: var(--vscode-terminal-ansiYellow);
+}
+
+.status-mode.mode-nav-filtered {
+    color: var(--vscode-terminal-ansiCyan);
+}
+
+.status-message {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.9;
+}
+
+.helpline {
+    border-top: 1px solid var(--vscode-panel-border);
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: var(--vscode-sideBar-background);
+}
+
+.help-key {
+    color: #d19a66;
+}
+
+.help-value {
+    color: var(--vscode-descriptionForeground);
+    margin-right: 10px;
+}

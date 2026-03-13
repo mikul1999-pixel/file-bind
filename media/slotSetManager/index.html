@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slot Sets</title>
+    <link rel="stylesheet" href="{{styleUri}}" />
+</head>
+<body>
+    <div class="promptbar">
+        <span class="prompt-label">slot-sets ></span>
+        <span class="prompt-value" id="prompt-meta">selected default | active default</span>
+    </div>
+    <div class="layout">
+        <section class="left">
+            <div class="title">results</div>
+            <ul id="set-list" class="set-list"></ul>
+        </section>
+        <section class="right">
+            <div class="title">preview</div>
+            <div class="preview-title" id="preview-title">slots.json</div>
+            <pre id="preview"></pre>
+        </section>
+    </div>
+    <div class="statusline">
+        <div class="status-mode" id="status-mode">NAV</div>
+        <div class="status-message" id="status-message"></div>
+    </div>
+    <div class="helpline" id="helpline"></div>
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

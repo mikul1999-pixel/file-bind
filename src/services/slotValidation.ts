@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { MAX_SLOT_COUNT } from '../config/constants';
 import type { SlotBinding, SlotRecord, SlotSetsConfig } from '../types/slots';
 import {
@@ -19,6 +20,7 @@ function isSlotBinding(value: unknown): value is SlotBinding {
         candidate.mode === 'static';
 
     return typeof candidate.filePath === 'string' &&
+        isSafeRelativePath(candidate.filePath) &&
         typeof candidate.line === 'number' &&
         Number.isInteger(candidate.line) &&
         candidate.line >= 0 &&
@@ -26,6 +28,19 @@ function isSlotBinding(value: unknown): value is SlotBinding {
         Number.isInteger(candidate.character) &&
         candidate.character >= 0 &&
         isModeValid;
+}
+
+function isSafeRelativePath(filePath: string): boolean {
+    if (!filePath || path.isAbsolute(filePath)) {
+        return false;
+    }
+
+    const normalized = path.normalize(filePath);
+    if (normalized === '' || normalized === '.' || normalized === '..') {
+        return false;
+    }
+
+    return !normalized.startsWith(`..${path.sep}`) && normalized !== '..';
 }
 
 export function parseSlotRecord(json: string): SlotRecord {

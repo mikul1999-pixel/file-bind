@@ -5,7 +5,11 @@ import type { SlotStore } from '../services/slotStore';
 import { clampPosition } from '../utils/positions';
 import { findSlotByPath, getSlotKey, isSlotEnabled } from '../utils/slots';
 import { getSlotCount } from '../config/settings';
-import { getWorkspaceFolder, getWorkspaceRelativePath } from '../utils/workspace';
+import {
+    getWorkspaceFolder,
+    getWorkspaceRelativePath,
+    resolveWorkspaceFilePath
+} from '../utils/workspace';
 
 export function registerSlotCommands(
     context: vscode.ExtensionContext,
@@ -155,26 +159,34 @@ function registerJumpCommand(
             return;
         }
 
-        const workspaceFolder = getWorkspaceFolder();
-        if (!workspaceFolder) {
+        if (!getWorkspaceFolder()) {
             vscode.window.showWarningMessage('No workspace folder open');
             return;
         }
 
-        const fullPath = path.join(workspaceFolder.uri.fsPath, binding.filePath);
-        await openFile(fullPath, binding, resolvedSlotNumber, slots, slotStore, updateStatusBar);
+        await openFile(binding.filePath, binding, resolvedSlotNumber, slots, slotStore, updateStatusBar);
     });
 }
 
 // Open file and restore saved cursor
 async function openFile(
-    fullPath: string,
+    relativePath: string,
     binding: SlotBinding,
     slotNumber: number,
     slots: SlotRecord,
     slotStore: SlotStore,
     updateStatusBar: () => void
 ): Promise<void> {
+    const fullPath = resolveWorkspaceFilePath(relativePath);
+    if (!fullPath) {
+        await clearSlot(slotStore, slotNumber, slots);
+        updateStatusBar();
+        vscode.window.showWarningMessage(
+            `File Bind: Slot ${slotNumber} had an invalid path and was cleared`
+        );
+        return;
+    }
+
     const uri = vscode.Uri.file(fullPath);
 
     try {
@@ -269,6 +281,10 @@ async function clearSlot(slotStore: SlotStore, slotNumber: number, slots: SlotRe
 async function resolveSlot(slotStore: SlotStore, slotNumber?: number): Promise<number | undefined> {
     // Resolve from keybind args or quick pick
     if (slotNumber !== undefined) {
+        if (!Number.isInteger(slotNumber) || slotNumber < 1 || !isSlotEnabled(slotNumber)) {
+            return undefined;
+        }
+
         return slotNumber;
     }
 

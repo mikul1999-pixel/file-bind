@@ -2,7 +2,7 @@
   "name": "file-bind",
   "displayName": "File Bind",
   "description": "Bind files to keyboard shortcuts for quick navigation",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "icon": "media/icon.png",
   "publisher": "mikul",
   "repository": {

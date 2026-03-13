@@ -2,7 +2,11 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import type { SlotStore } from './slotStore';
 import type { SlotUpdate } from '../types/slots';
-import { getWorkspaceFolder } from '../utils/workspace';
+import {
+    getWorkspaceFolder,
+    isWorkspaceRelativePath,
+    resolveWorkspaceFilePath
+} from '../utils/workspace';
 
 export function registerFileWatchers(
     context: vscode.ExtensionContext,
@@ -39,7 +43,13 @@ async function handleFileDeletes(
     const updatedSlots = { ...slots };
 
     for (const [slot, binding] of Object.entries(slots)) {
-        const fullPath = path.join(workspaceFolder.uri.fsPath, binding.filePath);
+        const fullPath = resolveWorkspaceFilePath(binding.filePath);
+        if (!fullPath) {
+            delete updatedSlots[slot];
+            clearedSlots.push(slot);
+            continue;
+        }
+
         const deletedFile = e.files.find((uri) => uri.fsPath === fullPath);
 
         if (deletedFile) {
@@ -71,9 +81,16 @@ async function handleFileRenames(
 
     const updatedSlots = { ...slots };
     const updates: SlotUpdate[] = [];
+    const escapedSlots: string[] = [];
 
     for (const [slot, binding] of Object.entries(slots)) {
-        const fullPath = path.join(workspaceFolder.uri.fsPath, binding.filePath);
+        const fullPath = resolveWorkspaceFilePath(binding.filePath);
+        if (!fullPath) {
+            delete updatedSlots[slot];
+            escapedSlots.push(slot);
+            continue;
+        }
+
         const renamedFile = e.files.find((file) => file.oldUri.fsPath === fullPath);
 
         if (!renamedFile) {
@@ -84,6 +101,11 @@ async function handleFileRenames(
             workspaceFolder.uri.fsPath,
             renamedFile.newUri.fsPath
         );
+        if (!isWorkspaceRelativePath(newRelativePath)) {
+            delete updatedSlots[slot];
+            escapedSlots.push(slot);
+            continue;
+        }
 
         updatedSlots[slot] = {
             ...binding,
@@ -97,13 +119,19 @@ async function handleFileRenames(
         });
     }
 
-    if (updates.length === 0) {
+    if (updates.length === 0 && escapedSlots.length === 0) {
         return;
     }
 
     await slotStore.saveSlots(updatedSlots);
     updateStatusBar();
-    showRenameMessage(updates);
+    if (updates.length > 0) {
+        showRenameMessage(updates);
+    }
+
+    if (escapedSlots.length > 0) {
+        showOutsideWorkspaceMessage(escapedSlots);
+    }
 }
 
 function showDeletionMessage(clearedSlots: string[]): void {
@@ -132,5 +160,18 @@ function showRenameMessage(updates: SlotUpdate[]): void {
 
     vscode.window.showInformationMessage(
         `File Bind: ${updates.length} slots updated for renamed files`
+    );
+}
+
+function showOutsideWorkspaceMessage(clearedSlots: string[]): void {
+    if (clearedSlots.length === 1) {
+        vscode.window.showWarningMessage(
+            `File Bind: Slot ${clearedSlots[0]} path moved outside workspace and was cleared`
+        );
+        return;
+    }
+
+    vscode.window.showWarningMessage(
+        `File Bind: ${clearedSlots.length} slot paths moved outside workspace and were cleared`
     );
 }

@@ -7,6 +7,7 @@ import {
     isValidSetName,
     normalizeSetName
 } from './slotSetRules';
+import { isWorkspaceRelativePath } from '../utils/workspace';
 
 const ACTIVE_SET_STATE_KEY = 'activeSet';
 const SLOT_SETS_STATE_KEY = 'slotSets';
@@ -279,6 +280,7 @@ function parseSlotBinding(slotKey: string, value: unknown): SlotRecord[string] |
 
     const mode = binding.mode;
     if (typeof binding.filePath !== 'string' ||
+        !isWorkspaceRelativePath(binding.filePath) ||
         !Number.isInteger(binding.line) || (binding.line as number) < 0 ||
         !Number.isInteger(binding.character) || (binding.character as number) < 0 ||
         (mode !== undefined && mode !== 'auto' && mode !== 'static')) {
